@@ -1,358 +1,276 @@
 /**
- * WebSocket client for real-time features
+ * WebSocket client for real-time notifications and chat
  */
 
-import { getAuthToken } from './auth';
+// Event types for WebSocket messages
+export type WebSocketEventType = 'notification' | 'chat_message' | 'typing' | 'read_receipt' | 'connection_status';
 
-// Event handlers for different message types
-type NotificationHandler = (data: any) => void;
-type ChatMessageHandler = (data: any) => void;
-type TypingIndicatorHandler = (data: { roomId: number, userId: number, isTyping: boolean }) => void;
-type ConnectionStatusHandler = (isConnected: boolean) => void;
+// WebSocket message structure
+export interface WebSocketMessage {
+  type: WebSocketEventType;
+  data: any;
+}
 
-// WebSocket client singleton
+// WebSocket connection events
+export interface ConnectionStatusEvent {
+  status: 'connected' | 'disconnected' | 'reconnecting';
+  timestamp: string;
+}
+
+// Notification event structure
+export interface NotificationEvent {
+  id: number;
+  userId: number;
+  title: string;
+  message: string;
+  type: string;
+  link?: string;
+  read: boolean;
+  createdAt: string;
+}
+
+// Chat message event structure
+export interface ChatMessageEvent {
+  id: number;
+  chatRoomId: number;
+  senderId: number;
+  content: string;
+  type: string;
+  read: boolean;
+  createdAt: string;
+}
+
+// Typing indicator event
+export interface TypingEvent {
+  chatRoomId: number;
+  userId: number;
+  isTyping: boolean;
+  timestamp: string;
+}
+
+// Read receipt event
+export interface ReadReceiptEvent {
+  chatRoomId: number;
+  userId: number;
+  messageId: number;
+  timestamp: string;
+}
+
+// Event handler type
+type EventHandler = (data: any) => void;
+
+// WebSocket client class
 class WebSocketClient {
-  private socket: WebSocket | null = null;
-  private reconnectInterval: number = 3000; // 3 seconds
-  private reconnectAttempts: number = 0;
-  private maxReconnectAttempts: number = 10;
-  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-  private notificationHandlers: NotificationHandler[] = [];
-  private chatMessageHandlers: ChatMessageHandler[] = [];
-  private typingIndicatorHandlers: TypingIndicatorHandler[] = [];
-  private connectionStatusHandlers: ConnectionStatusHandler[] = [];
-  private authenticated: boolean = false;
-  
-  /**
-   * Initialize WebSocket connection
-   */
-  public connect(): void {
-    if (this.socket?.readyState === WebSocket.OPEN) {
+  private ws: WebSocket | null = null;
+  private reconnectTimer: number | null = null;
+  private reconnectAttempts = 0;
+  private maxReconnectAttempts = 5;
+  private reconnectInterval = 3000; // 3 seconds
+  private eventHandlers: Map<WebSocketEventType, EventHandler[]> = new Map();
+  private userId: number | null = null;
+  private authToken: string | null = null;
+
+  // Initialize WebSocket connection
+  connect(userId: number, authToken: string) {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       console.log('WebSocket already connected');
       return;
     }
-    
+
+    this.userId = userId;
+    this.authToken = authToken;
+
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
+
     try {
-      // Use the appropriate WebSocket protocol based on the current connection
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const host = window.location.host;
-      const wsUrl = `${protocol}//${host}/ws`;
-      
-      console.log(`Connecting to WebSocket at ${wsUrl}`);
-      
-      this.socket = new WebSocket(wsUrl);
-      
-      this.socket.onopen = this.handleOpen.bind(this);
-      this.socket.onmessage = this.handleMessage.bind(this);
-      this.socket.onclose = this.handleClose.bind(this);
-      this.socket.onerror = this.handleError.bind(this);
+      this.ws = new WebSocket(wsUrl);
+
+      // Connection opened
+      this.ws.addEventListener('open', () => {
+        console.log('WebSocket connection established');
+        this.reconnectAttempts = 0;
+        
+        // Send authentication message
+        this.sendMessage({
+          type: 'authentication',
+          data: {
+            userId,
+            token: authToken
+          }
+        });
+
+        // Notify handlers of connection
+        this.notifyHandlers('connection_status', {
+          status: 'connected',
+          timestamp: new Date().toISOString()
+        });
+      });
+
+      // Listen for messages
+      this.ws.addEventListener('message', (event) => {
+        try {
+          const message = JSON.parse(event.data) as WebSocketMessage;
+          this.notifyHandlers(message.type, message.data);
+        } catch (error) {
+          console.error('Error parsing WebSocket message:', error);
+        }
+      });
+
+      // Connection closed
+      this.ws.addEventListener('close', () => {
+        console.log('WebSocket connection closed');
+        this.notifyHandlers('connection_status', {
+          status: 'disconnected',
+          timestamp: new Date().toISOString()
+        });
+        this.attemptReconnect();
+      });
+
+      // Connection error
+      this.ws.addEventListener('error', (error) => {
+        console.error('WebSocket error:', error);
+        this.notifyHandlers('connection_status', {
+          status: 'disconnected',
+          timestamp: new Date().toISOString()
+        });
+      });
     } catch (error) {
-      console.error('Error establishing WebSocket connection:', error);
-      this.scheduleReconnect();
+      console.error('Failed to create WebSocket connection:', error);
     }
   }
-  
-  /**
-   * Disconnect WebSocket
-   */
-  public disconnect(): void {
-    if (this.socket) {
-      this.socket.close();
-      this.socket = null;
+
+  // Close WebSocket connection
+  disconnect() {
+    if (this.ws) {
+      this.ws.close();
+      this.ws = null;
     }
-    
+
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
     }
-    
-    this.authenticated = false;
-    this.notifyConnectionStatus(false);
+
+    this.userId = null;
+    this.authToken = null;
   }
-  
-  /**
-   * Send authentication message
-   */
-  private authenticate(): void {
-    if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
+
+  // Attempt to reconnect
+  private attemptReconnect() {
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      console.log('Max reconnection attempts reached');
       return;
     }
-    
-    // Get JWT token from auth
-    const token = getAuthToken();
-    
-    if (!token) {
-      console.warn('No auth token available, WebSocket authentication skipped');
-      return;
-    }
-    
-    // Send authentication message
-    this.socket.send(JSON.stringify({
-      type: 'auth',
-      token
-    }));
-  }
-  
-  /**
-   * Handle WebSocket open event
-   */
-  private handleOpen(): void {
-    console.log('WebSocket connection established');
-    this.reconnectAttempts = 0;
-    
-    // Authenticate connection
-    this.authenticate();
-    
-    // Notify listeners of connection
-    this.notifyConnectionStatus(true);
-  }
-  
-  /**
-   * Handle WebSocket message event
-   */
-  private handleMessage(event: MessageEvent): void {
-    try {
-      const message = JSON.parse(event.data);
-      
-      switch (message.type) {
-        case 'auth_success':
-          console.log('WebSocket authenticated successfully');
-          this.authenticated = true;
-          break;
-          
-        case 'auth_error':
-          console.error('WebSocket authentication failed:', message.message);
-          this.authenticated = false;
-          break;
-          
-        case 'notification':
-          this.notifyNotificationHandlers(message.data);
-          break;
-          
-        case 'chat_message':
-          this.notifyChatMessageHandlers(message.data);
-          break;
-          
-        case 'typing_indicator':
-          this.notifyTypingIndicatorHandlers(message.data);
-          break;
-          
-        case 'broadcast':
-          console.log('Broadcast message received:', message.data);
-          break;
-          
-        default:
-          console.log('Unknown WebSocket message type:', message.type);
-      }
-    } catch (error) {
-      console.error('Error processing WebSocket message:', error);
-    }
-  }
-  
-  /**
-   * Handle WebSocket close event
-   */
-  private handleClose(event: CloseEvent): void {
-    this.socket = null;
-    this.authenticated = false;
-    
-    console.log(`WebSocket connection closed: ${event.code} ${event.reason}`);
-    
-    // Notify listeners of disconnection
-    this.notifyConnectionStatus(false);
-    
-    // Attempt to reconnect
-    this.scheduleReconnect();
-  }
-  
-  /**
-   * Handle WebSocket error event
-   */
-  private handleError(event: Event): void {
-    console.error('WebSocket error:', event);
-    
-    // Close and reconnect on error
-    if (this.socket) {
-      this.socket.close();
-    }
-  }
-  
-  /**
-   * Schedule reconnection
-   */
-  private scheduleReconnect(): void {
+
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
     }
+
+    this.reconnectAttempts++;
+    const delay = this.reconnectInterval * Math.pow(1.5, this.reconnectAttempts - 1);
     
-    if (this.reconnectAttempts < this.maxReconnectAttempts) {
-      this.reconnectAttempts++;
-      const delay = this.reconnectInterval * Math.min(this.reconnectAttempts, 5);
-      
-      console.log(`Scheduling WebSocket reconnection in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
-      
-      this.reconnectTimer = setTimeout(() => {
-        this.connect();
-      }, delay);
+    console.log(`Attempting to reconnect in ${delay}ms (attempt ${this.reconnectAttempts})`);
+    
+    this.notifyHandlers('connection_status', {
+      status: 'reconnecting',
+      timestamp: new Date().toISOString()
+    });
+
+    this.reconnectTimer = window.setTimeout(() => {
+      if (this.userId && this.authToken) {
+        this.connect(this.userId, this.authToken);
+      }
+    }, delay);
+  }
+
+  // Send message to server
+  sendMessage(message: WebSocketMessage) {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify(message));
     } else {
-      console.error(`Maximum WebSocket reconnection attempts (${this.maxReconnectAttempts}) reached`);
+      console.error('Cannot send message, WebSocket is not connected');
     }
   }
-  
-  /**
-   * Send a message via WebSocket
-   */
-  public send(message: any): boolean {
-    if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
-      console.error('Cannot send message: WebSocket not connected');
-      return false;
+
+  // Register event handler
+  on(eventType: WebSocketEventType, handler: EventHandler) {
+    if (!this.eventHandlers.has(eventType)) {
+      this.eventHandlers.set(eventType, []);
     }
     
-    try {
-      this.socket.send(typeof message === 'string' ? message : JSON.stringify(message));
-      return true;
-    } catch (error) {
-      console.error('Error sending WebSocket message:', error);
-      return false;
+    this.eventHandlers.get(eventType)?.push(handler);
+  }
+
+  // Remove event handler
+  off(eventType: WebSocketEventType, handler: EventHandler) {
+    if (!this.eventHandlers.has(eventType)) {
+      return;
+    }
+    
+    const handlers = this.eventHandlers.get(eventType) || [];
+    const index = handlers.indexOf(handler);
+    
+    if (index !== -1) {
+      handlers.splice(index, 1);
     }
   }
-  
-  /**
-   * Send a typing indicator
-   */
-  public sendTypingIndicator(roomId: number, isTyping: boolean): boolean {
-    return this.send({
-      type: 'typing_indicator',
+
+  // Notify all handlers for an event type
+  private notifyHandlers(eventType: WebSocketEventType, data: any) {
+    const handlers = this.eventHandlers.get(eventType) || [];
+    
+    handlers.forEach(handler => {
+      try {
+        handler(data);
+      } catch (error) {
+        console.error(`Error in ${eventType} handler:`, error);
+      }
+    });
+  }
+
+  // Send typing indicator
+  sendTypingIndicator(chatRoomId: number, isTyping: boolean) {
+    this.sendMessage({
+      type: 'typing',
       data: {
-        roomId,
-        isTyping
+        chatRoomId,
+        userId: this.userId,
+        isTyping,
+        timestamp: new Date().toISOString()
       }
     });
   }
-  
-  // Event handler registration methods
-  
-  /**
-   * Register notification handler
-   */
-  public onNotification(handler: NotificationHandler): () => void {
-    this.notificationHandlers.push(handler);
-    
-    // Return unsubscribe function
-    return () => {
-      this.notificationHandlers = this.notificationHandlers.filter(h => h !== handler);
-    };
-  }
-  
-  /**
-   * Register chat message handler
-   */
-  public onChatMessage(handler: ChatMessageHandler): () => void {
-    this.chatMessageHandlers.push(handler);
-    
-    // Return unsubscribe function
-    return () => {
-      this.chatMessageHandlers = this.chatMessageHandlers.filter(h => h !== handler);
-    };
-  }
-  
-  /**
-   * Register typing indicator handler
-   */
-  public onTypingIndicator(handler: TypingIndicatorHandler): () => void {
-    this.typingIndicatorHandlers.push(handler);
-    
-    // Return unsubscribe function
-    return () => {
-      this.typingIndicatorHandlers = this.typingIndicatorHandlers.filter(h => h !== handler);
-    };
-  }
-  
-  /**
-   * Register connection status handler
-   */
-  public onConnectionStatus(handler: ConnectionStatusHandler): () => void {
-    this.connectionStatusHandlers.push(handler);
-    
-    // Initial status notification
-    handler(this.socket?.readyState === WebSocket.OPEN);
-    
-    // Return unsubscribe function
-    return () => {
-      this.connectionStatusHandlers = this.connectionStatusHandlers.filter(h => h !== handler);
-    };
-  }
-  
-  // Handler notification methods
-  
-  /**
-   * Notify all notification handlers
-   */
-  private notifyNotificationHandlers(data: any): void {
-    this.notificationHandlers.forEach(handler => {
-      try {
-        handler(data);
-      } catch (error) {
-        console.error('Error in notification handler:', error);
+
+  // Send read receipt
+  sendReadReceipt(chatRoomId: number, messageId: number) {
+    this.sendMessage({
+      type: 'read_receipt',
+      data: {
+        chatRoomId,
+        userId: this.userId,
+        messageId,
+        timestamp: new Date().toISOString()
       }
     });
   }
-  
-  /**
-   * Notify all chat message handlers
-   */
-  private notifyChatMessageHandlers(data: any): void {
-    this.chatMessageHandlers.forEach(handler => {
-      try {
-        handler(data);
-      } catch (error) {
-        console.error('Error in chat message handler:', error);
+
+  // Send chat message
+  sendChatMessage(chatRoomId: number, content: string, type: string = 'text') {
+    this.sendMessage({
+      type: 'chat_message',
+      data: {
+        chatRoomId,
+        senderId: this.userId,
+        content,
+        type,
+        timestamp: new Date().toISOString()
       }
     });
-  }
-  
-  /**
-   * Notify all typing indicator handlers
-   */
-  private notifyTypingIndicatorHandlers(data: { roomId: number, userId: number, isTyping: boolean }): void {
-    this.typingIndicatorHandlers.forEach(handler => {
-      try {
-        handler(data);
-      } catch (error) {
-        console.error('Error in typing indicator handler:', error);
-      }
-    });
-  }
-  
-  /**
-   * Notify all connection status handlers
-   */
-  private notifyConnectionStatus(isConnected: boolean): void {
-    this.connectionStatusHandlers.forEach(handler => {
-      try {
-        handler(isConnected);
-      } catch (error) {
-        console.error('Error in connection status handler:', error);
-      }
-    });
-  }
-  
-  /**
-   * Check if WebSocket is connected
-   */
-  public isConnected(): boolean {
-    return this.socket?.readyState === WebSocket.OPEN;
-  }
-  
-  /**
-   * Check if WebSocket is authenticated
-   */
-  public isAuthenticated(): boolean {
-    return this.authenticated && this.isConnected();
   }
 }
 
 // Create singleton instance
-const wsClient = new WebSocketClient();
+export const wsClient = new WebSocketClient();
 
 export default wsClient;

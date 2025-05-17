@@ -11,13 +11,13 @@ const logger = createLogger('api-routes');
 // Register routes
 logger.info('Registering API routes');
 
-// Register frontend adapter routes
+// Register frontend API routes
 try {
-  const adapterRoutes = require('./adapter.routes').default;
-  router.use('/', adapterRoutes); // Mount at root level to match frontend expected paths
-  logger.info('Frontend adapter routes registered successfully');
+  const apiRoutes = require('./api.routes').default;
+  router.use('/', apiRoutes); // Mount at root level to match frontend expected paths
+  logger.info('Frontend API routes registered successfully');
 } catch (error) {
-  logger.error('Error loading adapter routes', error);
+  logger.error('Error loading API routes', error);
 }
 
 // Try to import and register core routes
