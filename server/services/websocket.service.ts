@@ -5,7 +5,15 @@ import { WebSocketServer, WebSocket } from 'ws';
 import http from 'http';
 import { createLogger } from '../utils/logger';
 import jwt from 'jsonwebtoken';
-import { JwtUser } from './jwt.service';
+
+// Define the JWT user interface
+interface JwtUser {
+  id: number;
+  email: string;
+  role?: string;
+  iat?: number;
+  exp?: number;
+}
 
 const logger = createLogger('websocket-service');
 
@@ -34,8 +42,24 @@ export function initializeWebSocketServer(server: http.Server): WebSocketServer 
 function handleConnection(ws: WebSocket, req: http.IncomingMessage) {
   try {
     // Parse the authentication token from query params
-    const url = new URL(req.url, `http://${req.headers.host}`);
-    const token = url.searchParams.get('token');
+    if (!req.url) {
+      logger.warn('WebSocket connection attempted without URL');
+      ws.close(4000, 'Invalid request');
+      return;
+    }
+    
+    // Use a safe URL parsing approach
+    let token: string | null = null;
+    try {
+      // Handle URL parsing safely
+      const urlString = `http://${req.headers.host || 'localhost'}${req.url}`;
+      const parsedUrl = new URL(urlString);
+      token = parsedUrl.searchParams.get('token');
+    } catch (error) {
+      logger.warn('Error parsing WebSocket URL', error);
+      ws.close(4000, 'Invalid request URL');
+      return;
+    }
     
     // No token provided
     if (!token) {
@@ -61,7 +85,10 @@ function handleConnection(ws: WebSocket, req: http.IncomingMessage) {
     if (!connections.has(userId)) {
       connections.set(userId, []);
     }
-    connections.get(userId).push(ws);
+    const userConnections = connections.get(userId);
+    if (userConnections) {
+      userConnections.push(ws);
+    }
     
     // Send a welcome message
     ws.send(JSON.stringify({

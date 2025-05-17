@@ -9,6 +9,7 @@ import { initializeFirebaseAdmin } from './services/firebase';
 import { createLogger } from './utils/logger';
 import { errorHandler } from './middleware/error';
 import apiRoutes from './routes';
+import * as websocketService from './services/websocket.service';
 
 // Initialize logger
 const logger = createLogger('server');
@@ -47,6 +48,10 @@ initializeDatabase();
 const app: Express = express();
 const server = http.createServer(app);
 
+// Initialize WebSocket server
+const wss = websocketService.initializeWebSocketServer(server);
+logger.info('WebSocket server initialized on path: /ws');
+
 // Apply middleware
 app.use(cors());
 app.use(express.json({ limit: '5mb' })); // Increased limit for contract content
@@ -73,7 +78,20 @@ app.get('/api/health', (req: Request, res: Response) => {
     success: true,
     status: 'healthy',
     timestamp: new Date().toISOString(),
-    version: process.env.npm_package_version || '1.0.0'
+    version: process.env.npm_package_version || '1.0.0',
+    websocket: {
+      connections: websocketService.getActiveConnectionCount()
+    }
+  });
+});
+
+// WebSocket connection status endpoint
+app.get('/api/ws/status', (req: Request, res: Response) => {
+  const connections = websocketService.getActiveConnectionCount();
+  res.json({
+    success: true,
+    status: 'active',
+    connections
   });
 });
 
@@ -89,6 +107,7 @@ const PORT = process.env.PORT || 3000;
 if (process.env.NODE_ENV !== 'test') {
   server.listen(PORT, '0.0.0.0', () => {
     logger.info(`Server is running on port ${PORT}`);
+    logger.info(`WebSocket server ready for real-time notifications and chat`);
   });
 }
 
