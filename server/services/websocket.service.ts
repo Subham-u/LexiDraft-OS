@@ -175,13 +175,13 @@ export function broadcastMessage(data: any) {
     data
   });
   
-  for (const userConnections of connections.values()) {
-    userConnections.forEach(ws => {
+  connections.forEach((userConnections) => {
+    userConnections.forEach((ws: WebSocket) => {
       if (ws.readyState === WebSocket.OPEN) {
         ws.send(message);
       }
     });
-  }
+  });
   
   logger.info('Broadcast message sent to all users');
 }
@@ -199,9 +199,9 @@ export function isUserConnected(userId: number): boolean {
  */
 export function getConnectionCount(): number {
   let count = 0;
-  for (const userConnections of connections.values()) {
+  connections.forEach((userConnections) => {
     count += userConnections.length;
-  }
+  });
   return count;
 }
 
