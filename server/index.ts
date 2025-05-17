@@ -3,9 +3,9 @@ dotenv.config();
 import express, { type Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { setupVite, serveStatic } from "./vite";
-import { SERVER_CONFIG } from "./shared/config";
+import { SERVER_CONFIG, logServiceStatus } from "./shared/config";
 import { createLogger } from "./shared/utils/logger";
-import apiRouter from "./microservices/api";
+import apiRouter from "./microservices";
 import { initializeDatabase } from "./shared/models/db";
 
 // Create logger
@@ -53,10 +53,13 @@ app.use((req, res, next) => {
 // Initialize the database
 initializeDatabase();
 
+// Log service availability
+logServiceStatus();
+
 // Create HTTP server
 const server: Server = createServer(app);
 
-// Setup API routes using microservices for backward compatibility
+// Setup API routes using microservices
 app.use('/api', apiRouter);
 
 // Global error handler
