@@ -59,7 +59,12 @@ logServiceStatus();
 // Create HTTP server
 const server: Server = createServer(app);
 
-// Start the microservices
+// During migration: Use the legacy API router 
+import apiRouter from "./microservices";
+app.use('/api', apiRouter);
+
+// Start the microservices in the background
+// This allows the legacy API to continue functioning during migration
 startServices()
   .then(services => {
     logger.info('All services started successfully');
