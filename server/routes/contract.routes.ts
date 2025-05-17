@@ -21,9 +21,26 @@ router.get("/", authenticate(), asyncHandler(async (req: Request, res: Response)
   // If user is authenticated, get their contracts
   if (req.user) {
     const contracts = await contractService.getContractsByUserId(req.user.id);
+    
+    // Adapt the contract data to match frontend expectations
+    const adaptedContracts = contracts.map(contract => {
+      // Ensure all expected fields are present
+      return {
+        ...contract,
+        // Ensure these fields exist for the frontend, using defaults if not present
+        status: contract.status || 'draft',
+        type: contract.type || 'contract',
+        parties: contract.parties || [],
+        clauses: contract.clauses || [],
+        // Ensure dates are in ISO format for frontend
+        createdAt: contract.createdAt,
+        updatedAt: contract.updatedAt || contract.createdAt
+      };
+    });
+    
     return res.json({
       success: true,
-      data: contracts
+      data: adaptedContracts
     });
   }
   
@@ -82,9 +99,24 @@ router.get("/:id", authenticate(), asyncHandler(async (req: Request, res: Respon
     throw ApiError.forbidden('You do not have permission to access this contract');
   }
   
+  // Adapt the contract data to match frontend expectations
+  const adaptedContract = {
+    ...contract,
+    // Ensure these fields exist for the frontend, using defaults if not present
+    status: contract.status || 'draft',
+    type: contract.type || 'contract',
+    parties: contract.parties || [],
+    clauses: contract.clauses || [],
+    // Generate a LexiCert ID if not present (frontend expects this)
+    lexiCertId: contract.lexiCertId || `LEXI-${810000 + contractId}`,
+    // Ensure dates are in ISO format for frontend
+    createdAt: contract.createdAt,
+    updatedAt: contract.updatedAt || contract.createdAt
+  };
+  
   return res.json({
     success: true,
-    data: contract
+    data: adaptedContract
   });
 }));
 
