@@ -20,9 +20,60 @@ apiRouter.get('/status', (req, res) => {
   });
 });
 
-// Temporary fallback for all routes during migration
-apiRouter.use('*', (req, res) => {
+// Temporary handlers for specific endpoints
+apiRouter.get('/contracts/recent', (req, res) => {
   logger.info(`Legacy route accessed: ${req.method} ${req.originalUrl}`);
+  
+  res.status(200).json({
+    success: true,
+    data: []
+  });
+});
+
+apiRouter.get('/consultations', (req, res) => {
+  logger.info(`Legacy route accessed: ${req.method} ${req.originalUrl}`);
+  
+  res.status(200).json({
+    success: true,
+    data: []
+  });
+});
+
+apiRouter.get('/contracts', (req, res) => {
+  logger.info(`Legacy route accessed: ${req.method} ${req.originalUrl}`);
+  
+  res.status(200).json({
+    success: true,
+    data: []
+  });
+});
+
+apiRouter.get('/templates/popular', (req, res) => {
+  logger.info(`Legacy route accessed: ${req.method} ${req.originalUrl}`);
+  
+  res.status(200).json({
+    success: true,
+    data: []
+  });
+});
+
+apiRouter.get('/dashboard/stats', (req, res) => {
+  logger.info(`Legacy route accessed: ${req.method} ${req.originalUrl}`);
+  
+  res.status(200).json({
+    success: true,
+    data: {
+      contractsCount: 0,
+      clientsCount: 0,
+      pendingContractsCount: 0,
+      upcomingConsultationsCount: 0
+    }
+  });
+});
+
+// Fallback for other routes during migration
+apiRouter.use('*', (req, res) => {
+  logger.info(`Unhandled legacy route accessed: ${req.method} ${req.originalUrl}`);
   
   res.status(200).json({
     success: true,
