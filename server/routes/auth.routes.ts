@@ -112,4 +112,32 @@ router.delete("/users/:id", authenticate(), asyncHandler(async (req: Request, re
   });
 }));
 
+/**
+ * Refresh access token
+ * @route POST /api/auth/refresh-token
+ */
+router.post("/refresh-token", asyncHandler(async (req: Request, res: Response) => {
+  const { refreshToken } = req.body;
+  
+  if (!refreshToken) {
+    throw ApiError.badRequest('Refresh token is required');
+  }
+  
+  logger.info('Token refresh requested');
+  
+  // Import JWT service and refresh the token
+  const jwtService = await import('../services/jwt.service');
+  const accessToken = jwtService.refreshAccessToken(refreshToken);
+  
+  // Set the new access token in response headers
+  res.setHeader('X-Access-Token', accessToken);
+  
+  return res.json({
+    success: true,
+    data: {
+      accessToken
+    }
+  });
+}));
+
 export default router;

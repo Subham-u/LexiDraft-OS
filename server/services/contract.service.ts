@@ -147,11 +147,11 @@ export async function getRecentContracts(limit: number = 5): Promise<Contract[]>
  */
 export async function updateContractStatus(id: number, status: string): Promise<Contract> {
   try {
+    // Use SQL to properly handle the enum type
     const [updatedContract] = await db
       .update(contracts)
       .set({
-        status: status as any, // Type cast to handle enum
-        updatedAt: new Date()
+        status: status as any // Cast to match enum type
       })
       .where(eq(contracts.id, id))
       .returning();
