@@ -408,19 +408,6 @@ export const notifications = pgTable('notifications', {
   createdAt: timestamp('created_at').defaultNow().notNull()
 });
 
-// Chat Messages table
-export const chatMessages = pgTable('chat_messages', {
-  id: serial('id').primaryKey(),
-  senderId: integer('sender_id').references(() => users.id).notNull(),
-  receiverId: integer('receiver_id').references(() => users.id).notNull(),
-  content: text('content').notNull(),
-  attachments: json('attachments').array(),
-  read: boolean('read').default(false).notNull(),
-  relatedEntityId: integer('related_entity_id'),
-  relatedEntityType: text('related_entity_type'),
-  createdAt: timestamp('created_at').defaultNow().notNull()
-});
-
 // Chat Rooms table
 export const chatRooms = pgTable('chat_rooms', {
   id: serial('id').primaryKey(),
@@ -431,6 +418,19 @@ export const chatRooms = pgTable('chat_rooms', {
   metadata: json('metadata'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull()
+});
+
+// Chat Messages table
+export const chatMessages = pgTable('chat_messages', {
+  id: serial('id').primaryKey(),
+  roomId: integer('room_id').references(() => chatRooms.id).notNull(),
+  senderId: integer('sender_id').references(() => users.id).notNull(),
+  content: text('content').notNull(),
+  attachments: json('attachments').array(),
+  read: boolean('read').default(false).notNull(),
+  relatedEntityId: integer('related_entity_id'),
+  relatedEntityType: text('related_entity_type'),
+  createdAt: timestamp('created_at').defaultNow().notNull()
 });
 
 // Add insert schemas for new tables
