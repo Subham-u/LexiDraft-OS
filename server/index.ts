@@ -49,7 +49,7 @@ const app: Express = express();
 const server = http.createServer(app);
 
 // Initialize WebSocket server
-const wss = websocketService.initializeWebSocketServer(server);
+const wss = websocketService.setupWebSocketServer(server);
 logger.info('WebSocket server initialized on path: /ws');
 
 // Apply middleware
