@@ -105,7 +105,7 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 3000;
 
 if (process.env.NODE_ENV !== 'test') {
-  server.listen(PORT, '0.0.0.0', () => {
+  server.listen(PORT, () => {
     logger.info(`Server is running on port ${PORT}`);
     logger.info(`WebSocket server ready for real-time notifications and chat`);
   });

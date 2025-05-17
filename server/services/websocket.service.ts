@@ -3,7 +3,8 @@
  */
 import { WebSocketServer, WebSocket } from 'ws';
 import { Server } from 'http';
-import { verify } from 'jsonwebtoken';
+import jsonwebtoken from 'jsonwebtoken';
+const { verify } = jsonwebtoken;
 import { createLogger } from '../utils/logger';
 
 const logger = createLogger('websocket-service');

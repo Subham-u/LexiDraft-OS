@@ -7,6 +7,7 @@
 import express, { Router, Request, Response } from 'express';
 import { asyncHandler, ApiError } from '../middleware/error';
 import { authenticate } from '../middleware/auth';
+import { db } from '../db';
 import { createLogger } from '../utils/logger';
 import * as contractService from '../services/contract.service';
 import * as aiAnalysisService from '../services/ai-analysis.service';
