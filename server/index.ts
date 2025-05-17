@@ -63,20 +63,19 @@ const server: Server = createServer(app);
 import apiRouter from "./microservices";
 app.use('/api', apiRouter);
 
-// In this model, we'll use the main Express app as the gateway
-// rather than running a separate gateway service
-// We'll still initialize the individual microservices with their own routes
+// Use the main Express app to mount service routes directly
+// This simplifies our architecture and avoids port conflicts
 
-// Pass the main server instance to the services module
-import { setupServices } from "./services";
+// Import services and routes
+import servicesModule from "./services";
 
-// Setup the services using the main Express app as the gateway
-setupServices(app, server)
+// Setup the services using the main Express app
+servicesModule.setupServices(app, server)
   .then(() => {
     logger.info('All services initialized successfully');
   })
-  .catch(error => {
-    logger.error('Failed to initialize services', { error });
+  .catch((error) => {
+    logger.error('Failed to initialize services', { error: error instanceof Error ? error.message : String(error) });
   });
 
 // Global error handler
