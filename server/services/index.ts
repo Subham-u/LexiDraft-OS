@@ -8,6 +8,8 @@ import { createLogger } from '../shared/utils/logger';
 import { SERVICES } from '../shared/config/service';
 import { routes as userRoutes } from './user-service/src/routes';
 import { routes as contractRoutes } from './contract-service/src/routes';
+import { routes as paymentRoutes } from './payment-service/src/routes';
+import { routes as aiRoutes } from './ai-service/src/routes';
 import apiRoutes from './api-routes';
 
 const logger = createLogger('services');
@@ -46,9 +48,17 @@ export async function setupServices(app: Express, server: Server) {
   app.use(SERVICES.contract.path, contractRoutes);
   logger.info(`Mounted contract service at ${SERVICES.contract.path}`);
   
+  // Mount payment service routes
+  app.use(SERVICES.payment.path, paymentRoutes);
+  logger.info(`Mounted payment service at ${SERVICES.payment.path}`);
+  
+  // Mount AI service routes
+  app.use(SERVICES.ai.path, aiRoutes);
+  logger.info(`Mounted AI service at ${SERVICES.ai.path}`);
+  
   // TODO: Mount other service routes as they are implemented
   // app.use(SERVICES.lawyer.path, lawyerRoutes);
-  // app.use(SERVICES.payment.path, paymentRoutes);
+  // app.use(SERVICES.template.path, templateRoutes);
   // etc.
   
   return {
