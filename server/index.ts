@@ -13,8 +13,9 @@ import apiRoutes from './routes';
 // Initialize logger
 const logger = createLogger('server');
 
-// Import migrations
+// Import migrations and schema versioning
 import { initializeMigrations } from './db/migrations';
+import { initSchemaVersioning } from './db/schema-audit';
 
 // Initialize Firebase Admin
 try {
@@ -25,13 +26,22 @@ try {
 }
 
 // Initialize database and run migrations
-initializeMigrations()
-  .then(() => {
+async function initializeDatabase() {
+  try {
+    // Initialize schema version tracking
+    await initSchemaVersioning();
+    logger.info('Schema versioning initialized successfully');
+    
+    // Run migrations
+    await initializeMigrations();
     logger.info('Database migrations completed successfully');
-  })
-  .catch(err => {
-    logger.error('Failed to run database migrations', err);
-  });
+  } catch (err) {
+    logger.error('Database initialization error', err);
+  }
+}
+
+// Start database initialization
+initializeDatabase();
 
 // Create Express application
 const app: Express = express();

@@ -5,6 +5,7 @@ import express, { Router } from 'express';
 import authRoutes from './auth.routes';
 import contractRoutes from './contract.routes';
 import templateRoutes from './template.routes';
+import adminRoutes from './admin.routes';
 import { createLogger } from '../utils/logger';
 
 const router: Router = express.Router();
@@ -25,6 +26,7 @@ logger.info('Registering API routes');
 router.use('/auth', authRoutes);
 router.use('/contracts', contractRoutes);
 router.use('/templates', templateRoutes);
+router.use('/admin', adminRoutes);
 logger.info('API routes registered successfully');
 
 // Export the router
