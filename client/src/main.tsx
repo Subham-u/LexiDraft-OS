@@ -8,15 +8,18 @@ import { AuthProvider } from "./context/AuthContext";
 import { ContractProvider } from "./context/ContractContext";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
+import { NotificationProvider } from "./components/notifications/NotificationProvider";
 
 createRoot(document.getElementById("root")!).render(
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <ContractProvider>
-        <TooltipProvider>
-          <Toaster />
-          <App />
-        </TooltipProvider>
+        <NotificationProvider>
+          <TooltipProvider>
+            <Toaster />
+            <App />
+          </TooltipProvider>
+        </NotificationProvider>
       </ContractProvider>
     </AuthProvider>
   </QueryClientProvider>
