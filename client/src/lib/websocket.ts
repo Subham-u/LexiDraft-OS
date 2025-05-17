@@ -3,7 +3,7 @@
  */
 
 // Event types for WebSocket messages
-export type WebSocketEventType = 'notification' | 'chat_message' | 'typing' | 'read_receipt' | 'connection_status';
+export type WebSocketEventType = 'notification' | 'chat_message' | 'typing' | 'read_receipt' | 'connection_status' | 'authentication';
 
 // WebSocket message structure
 export interface WebSocketMessage {

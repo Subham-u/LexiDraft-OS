@@ -95,7 +95,11 @@ app.get('/api/ws/status', (req: Request, res: Response) => {
   });
 });
 
+// Import our direct API routes
+import directApiRoutes from './api.routes';
+
 // Mount API routes
+app.use(directApiRoutes);
 app.use('/api', apiRoutes);
 
 // Global error handler
