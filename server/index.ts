@@ -101,8 +101,16 @@ app.get('/api/ws/status', (req: Request, res: Response) => {
 // Mount API routes
 app.use('/api', apiRoutes);
 
-// Serve the notification demo page
+// Serve static files from the root directory
+app.use(express.static(process.cwd()));
+
+// Serve the main page
 app.get('/', (req: Request, res: Response) => {
+  res.sendFile(path.join(process.cwd(), 'index.html'));
+});
+
+// Legacy notification demo code - keeping for reference
+app.get('/old-demo', (req: Request, res: Response) => {
   const demoHTML = `
 <!DOCTYPE html>
 <html lang="en">
