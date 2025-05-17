@@ -33,10 +33,13 @@ export default function Templates() {
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [showFilters, setShowFilters] = useState(false)
 
-  const { data: templates, isLoading } = useQuery({
+  const { data: templateResponse, isLoading } = useQuery({
     queryKey: ["/api/templates"],
     staleTime: 60000, // 1 minute
   })
+  
+  // Extract templates array from the response structure
+  const templates = templateResponse?.data || []
 
   // Categories with icons
   const categories = [
