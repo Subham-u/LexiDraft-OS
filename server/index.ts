@@ -80,14 +80,14 @@ app.get('/api/health', (req: Request, res: Response) => {
     timestamp: new Date().toISOString(),
     version: process.env.npm_package_version || '1.0.0',
     websocket: {
-      connections: websocketService.getConnectionCount()
+      connections: websocketService.getConnectedUserCount()
     }
   });
 });
 
 // WebSocket connection status endpoint
 app.get('/api/ws/status', (req: Request, res: Response) => {
-  const connections = websocketService.getConnectionCount();
+  const connections = websocketService.getConnectedUserCount();
   res.json({
     success: true,
     status: 'active',
