@@ -1,0 +1,197 @@
+LexiDraft Lawyer Marketplace Flow (Pan-India + Global v2)
+🧭 PLATFORM GOAL
+Build a premium, secure, and AI-enhanced Lawyer Marketplace that lets users:
+
+Instantly find and consult verified lawyers by domain + location
+
+Book live consultations with in-app video + chat
+
+Use Lexi AI to co-pilot the conversation
+
+Access signed legal documents, ratings, and feedback seamlessly
+
+Expand internationally into regions with common-law systems (US, UK, Singapore, UAE)
+
+🧠 KEY MODULES TO BUILD
+1️⃣ Lawyer Discovery Flow (Pan-India Smart Filter)
+UX Filters
+
+Location: State → City (e.g., Maharashtra → Pune)
+
+Practice Area: Contract, Property, Criminal, Corporate, Family, IP, Startup, Real Estate
+
+Language: Hindi, English, Bengali, Tamil, Kannada, etc.
+
+Experience Level: 2+, 5+, 10+ years
+
+Consultation Mode: Video | Call | In-app Chat
+
+AI Assist Toggle: "Help me find the right lawyer for my issue" → LexiChat guides user via simple prompts
+
+Output: Dynamic lawyer cards with:
+
+Profile photo
+
+Verified badge (Bar Council + LexiScreened)
+
+Practice area, city, rating, consult availability
+
+“Book Now” button
+
+2️⃣ Lawyer Profile Page
+Intro + short description
+
+Area of Practice
+
+Verified licenses
+
+Availability calendar
+
+Reviews
+
+Languages spoken
+
+“Ask a Quick Question” (chat preview)
+
+“Book a Call” (full 1:1 consult)
+
+Public blog posts / articles written by lawyer
+
+3️⃣ Booking & Consultation Flow
+🚀 Step-by-Step:
+Select lawyer → Click Book Consultation
+
+Choose:
+
+Date/time
+
+Duration: 15/30/60 min
+
+Mode: Call | Video | Chat
+
+Pay via Razorpay/Cashfree
+
+Instant confirmation + link generated
+
+Consultation conducted on in-app LexiCall-powered Voice/Video Room
+
+Lexi AI can:
+
+Transcribe conversation
+
+Suggest clauses / resources
+
+Draft contract template on-the-go
+
+Post Call:
+
+Download summary
+
+Request follow-up
+
+Rate the lawyer
+
+Add them to “My Legal Team”
+
+4️⃣ Lawyer Dashboard
+Profile management
+
+Booking calendar
+
+Document sharing portal
+
+In-call notes + chat
+
+Lexi AI briefings on user issue (based on user prompt history)
+
+Revenue insights
+
+Badge system (Top Rated, 100+ Consults, Verified by Lexi, etc.)
+
+5️⃣ Trust + Verification Layer
+Layer	Description
+✅ Bar Council ID Upload	Required for India
+✅ LexiScreen AI Check	Reviews digital presence + rating history
+✅ LexiCert Profile Hash	Lawyer profile has immutable record of past actions
+✅ NDA Auto Sign	Optional for client confidentiality before call
+✅ Aadhaar + Email Verified	Required for payouts
+
+6️⃣ Smart Marketplace UX Per State
+Show:
+
+State-specific popular lawyer categories
+
+“Top Rated in Karnataka” section
+
+Upcoming webinars/events by city
+
+Lawyer availability shown in local timezones
+
+Multilingual UI toggle for high-regional states (Bengali, Tamil, Telugu)
+
+7️⃣ International Expansion Flow (Post 1 Year)
+🌍 Strategy:
+Enable filters for Country → State → Domain
+
+Initial target markets:
+
+UAE, Singapore, UK, US (common-law aligned)
+
+Onboarding process for international lawyers:
+
+Bar Registration Upload
+
+International payment compliance (Stripe, Wise)
+
+Lexi AI detects legal difference contextually during consults and adapts tone/data
+
+Contracts can be tagged: 🇮🇳 India, 🇸🇬 Singapore, 🇺🇸 USA, etc.
+
+🧱 SYSTEM COMPONENT BREAKDOWN
+🔧 Backend (Node.js + MongoDB/PostgreSQL)
+Module	Role
+/lawyer/verify	KYC, Bar Council, Aadhaar, LexiScreen AI trust scoring
+/lawyer/profile	Edit, publish, manage lawyer info
+/booking/consult	Schedule, reschedule, cancel, notifications
+/lexiassist/context	Send user concern + lawyer type → get contract outline or AI questions
+/review/rate	Client-to-lawyer review
+/payment/payouts	Razorpay for India, Stripe/Payoneer for global
+/document/share	Lawyer uploads, clients download legal docs securely
+/voice/lexicall	Route consultation to LexiCall infrastructure
+
+🎨 Frontend (React/Next.js + Tailwind)
+Component	Purpose
+LawyerSearch.jsx	Filter panel + results
+LawyerCard.jsx	Profile preview + Book CTA
+ProfilePage.jsx	Public lawyer profile view
+BookingForm.jsx	Select time/date/mode
+LexiVoiceRoom.jsx	Secure consultation room + AI Chat Assist
+RateLawyer.jsx	Post-consult feedback
+DashboardSidebar.jsx	Lawyer console + stats
+
+⚙️ API Integrations
+Service	Purpose
+Digio	Aadhaar eKYC
+Razorpay / Stripe	Payment
+OpenAI / Gemini	Contract AI + Lexi assistant
+LexiCall Infra	Real-time audio/video room
+Google Calendar API	Lawyer availability sync
+WhatsApp Cloud API	Reminders + links
+
+🔐 Premium-Grade Features
+LexiScreening = lawyer trust scores using digital footprint + review history
+
+Contract co-drafting = Live call + Lexi + lawyer working on the same doc
+
+LexiCert Consultation = Verified + timestamped consultation log for legal backup
+
+Multi-user video = Founder + lawyer + co-founder can join
+
+🎯 KEY OUTCOMES (Why This Flow Wins Long-Term)
+Value	Result
+All-State Coverage	Every city in India has accessible legal experts
+AI-Powered Efficiency	Speed + legal accuracy + affordability
+Trust-First Model	Verified lawyers with layered safeguards
+Scalable Revenue	Commission per booking + SaaS + upsells
+Global Scale	Reusable infra for other jurisdictions
+Defensible IP	Lexi AI + LexiCert + LexiScreen = Unmatched stack

@@ -1,0 +1,269 @@
+Product Vision:
+A fully secure, intelligent, and user-trustable platform to draft and verify any Indian legal contract, offering:
+
+✅ AI clause generation with plain-English prompts
+
+✅ Real-time collaborative editing and preview
+
+✅ Aadhaar-based signing, DSC support, LexiSign OTP
+
+✅ Clause intelligence (strength, legality, AI enhancement)
+
+✅ Shareable links with access control and audit logs
+
+✅ PDF export with legal certification (LexiCert ID)
+
+🧭 USER FLOW (Step-by-Step, No Compromise)
+1️⃣ Choose Contract Category
+Display 30+ Indian contract types:
+
+NDA, MOU, Employment, Partnership, Lease, Sale Deed, Vendor Agreement, Licensing, Freelance, Agency Agreement, etc.
+
+Users can:
+
+Search, Filter, Select
+
+Preview summary of terms before proceeding
+
+2️⃣ Add Party Details
+User adds:
+
+Name, Role (Client/Supplier/Employee), Email
+
+Optional: Aadhaar number (for eSign), Upload DSC (PFX file)
+
+“Add Another Party” → Dynamically append form blocks
+
+Auto-save party profiles for reuse in future contracts
+
+3️⃣ AI-Prompted Clause Generator
+Conversational AI interface:
+
+“What is the contract about?”
+
+“Duration / validity?”
+
+“Any payment or deliverables involved?”
+
+“Do you want a termination clause?”
+
+Use GPT-4 to generate full contract with:
+
+Contextual logic
+
+Indian legal tone
+
+Pre-tagged clauses
+
+4️⃣ Clause Review & Enhancement
+Show contract clause-by-clause (scrollable editor)
+
+Each clause includes:
+
+Edit field (WYSIWYG or plain text)
+
+“AI Enhance” button
+
+Strength meter (via AI score)
+
+Tags: [Confidentiality], [Payment], [Termination]
+
+UX Add-on:
+
+“Explain in plain English” toggle
+
+Clause reorder via drag-and-drop
+
+Add custom clause from library
+
+5️⃣ Finalize Appearance
+Upload Logo
+
+Choose Font + Document Layout
+
+Toggle Watermark: “DRAFT / FINAL / VERIFIED”
+
+Footer branding option
+
+Signature placeholder positioning
+
+6️⃣ Enable Verification Options
+User selects verification level:
+
+✅ LexiSign OTP (Email/Mobile)
+
+✅ Aadhaar eKYC + OTP (via Digio/NSDL)
+
+✅ DSC Upload (Digital Signature Certificate)
+
+✅ “No Signature – Just Download”
+
+UX View:
+Show signer status → Verified / Pending / Declined
+
+7️⃣ Generate & Share Contract
+Options:
+
+Download PDF / DOC
+
+Generate secure Sharable Link with role-based access:
+
+View-only
+
+Fill & Sign
+
+Comment Only
+
+Email with AI-generated custom message
+
+Enable link expiry & access tracking
+
+8️⃣ Track & Certify
+Real-time dashboard shows:
+
+Parties Signed / Pending
+
+View Timestamp
+
+Signature method (LexiSign / Aadhaar / DSC)
+
+Generate:
+
+Final contract with LexiCert ID (SHA hash-based PDF seal)
+
+Audit trail log
+
+Post-sign email with attached PDF
+
+🔐 LEGAL TRUST ENGINES TO BUILD
+Engine	Function
+AadhaarVerify	eSign via Digio/NSDL OTP flow
+DSCVerify	Validate uploaded PFX certificate & extract signer
+LexiSign	OTP/email based signature tool with IP + timestamp
+LexiCert	Contract fingerprint hash + audit log + certificate ID
+ClauseScore	AI scores each clause on strength & compliance
+
+🧱 BACKEND STRUCTURE (Node.js + MongoDB + 3rd Party APIs)
+/controllers/
+contractController.js – Draft, save, edit, share, export contracts
+
+verifyController.js – Aadhaar, DSC, LexiSign handling
+
+clauseController.js – Manage clause library + AI enhancement
+
+userController.js – Auth, saved parties, settings
+
+auditLogController.js – Sign/view actions
+
+shareController.js – Link generation + access control
+
+pdfController.js – Final export logic with LexiCert hash
+
+/models/
+Contract.js
+
+User.js
+
+Clause.js
+
+Verification.js
+
+AuditLog.js
+
+SharedLink.js
+
+/services/
+openaiService.js – GPT clause prompt + enhancement
+
+aadhaarService.js – Digio API integration
+
+dscService.js – Validate DSC + signer match
+
+lexiSignService.js – OTP email/mob sign + status
+
+pdfGenerator.js – Real-time preview and stamped PDF
+
+emailService.js – Contract invite, reminders
+
+hashService.js – SHA fingerprint generator
+
+⚛️ FRONTEND STRUCTURE (React.js + Tailwind/Next.js)
+/pages/
+/contract/new
+
+/contract/edit/:id
+
+/contract/share/:id
+
+/verify/:id
+
+/dashboard
+
+/components/contract/
+ContractTypeSelector.jsx
+
+PartyInputForm.jsx
+
+ClauseGeneratorPrompt.jsx
+
+ClauseEditor.jsx
+
+ClauseScoreBadge.jsx
+
+LivePDFPreview.jsx
+
+VerificationSelector.jsx
+
+SignerStatusTracker.jsx
+
+FinalizeAppearance.jsx
+
+LexiSignModal.jsx
+
+/components/shared/
+StepProgressBar.jsx
+
+ToastNotification.jsx
+
+LegalTooltip.jsx
+
+EmailInviteForm.jsx
+
+AuditLogTable.jsx
+
+/contexts/
+ContractContext.js
+
+VerificationContext.js
+
+UserContext.js
+
+🚀 DEPLOYMENT-READY FEATURES
+Functionality	Details
+Auth	JWT-based, session token
+Storage	MongoDB Atlas or Firebase
+PDF Engine	PDFKit or React-PDF
+Verification APIs	Digio (Aadhaar), self-hosted LexiSign, DSC parsing
+Hosting	Replit (MVP), move to Vercel/DigitalOcean for prod
+Backup & Audit	Encrypted + auto backup for compliance
+
+🔐 SECURITY & NON-CLONABLE FEATURES
+LexiCert = unique legal hash ID per contract
+
+Clause AI = memory-based smart suggestions from past usage
+
+Audit Trail = IP, browser, timestamp
+
+OTP + DSC + Aadhaar = legally enforceable proof
+
+Access Logs = Who viewed, when, how
+
+🎯 THIS PROMPT BUILDS:
+India's #1 intelligent contract SaaS
+
+Trusted by founders, lawyers, corporates
+
+Secure, scalable, fast, and legally certified
+
+Easily extensible to international law in future
+

@@ -1,0 +1,293 @@
+Build a full-stack SaaS platform called LexiDraft — an AI-powered legal contract operating system — designed to help users (founders, freelancers, HRs, legal teams) create, edit, collaborate, and automate legally sound contracts in India with visual control and personalized AI assistance.
+
+🧱 TECH STACK & ARCHITECTURE
+Frontend:
+
+React.js (with Next.js optional for SSR)
+
+Tailwind CSS (for modular UI styling)
+
+Framer Motion (for animations)
+
+PDF-lib + Fabric.js or React-PDF (for WYSIWYG PDF contract editor)
+
+Draft.js or Slate.js (for AI-enhanced inline text editing)
+
+Backend:
+
+Node.js + Express.js (modular service layers)
+
+MongoDB (document structure for contracts/templates)
+
+Firebase Auth + JWT (user + admin auth)
+
+OpenAI GPT-4 API (prompt-based AI assistant)
+
+Socket.io (for real-time client chat and lawyer marketplace)
+
+Razorpay or Cashfree (for subscription billing)
+
+Clean Architecture Structure:
+
+bash
+Copy
+Edit
+/src
+├── /components
+├── /layouts
+├── /features
+│   ├── contracts
+│   ├── ai
+│   ├── clients
+│   ├── marketplace
+│   ├── billing
+│   ├── dashboard
+├── /api
+├── /services
+├── /utils
+├── /store (context/redux)
+🧑‍💼 USER FLOW & SCREENS
+🏠 Dashboard (After Login)
+Welcome user + show daily activity
+
+Widgets: Total Contracts, Drafts, Templates Used
+
+Quick Actions: "Create Contract", "Connect Client", "Access Lexi AI"
+
+Sidebar Navigation:
+
+Dashboard
+
+My Contracts
+
+Templates
+
+Lexi AI
+
+Client Portal
+
+Lawyer Marketplace
+
+Billing & Subscription
+
+Settings
+
+📄 Create New Contract Flow
+🔹 Step 1: Select Contract Type
+Dropdown with popular types (NDA, Freelance, Founder, Lease, Employment)
+
+Suggestion panel based on industry
+
+🔹 Step 2: Add Parties
+Add Party Name, Role (Client, Provider, Employer)
+
+"+ Add Party" dynamic input button
+
+Jurisdiction selector
+
+🔹 Step 3: Prompt-based Interactive AI Flow
+Show chat-style interface (like AI chat)
+
+Lexi AI dynamically asks relevant questions:
+
+"What's the payment structure?"
+
+"Should the IP stay with the client?"
+
+"Include a non-compete clause?"
+
+🧠 Lexi AI Behavior:
+Responses are legally validated for Indian law
+
+Learns from user behavior to suggest clauses
+
+Explains clauses in plain English when prompted
+
+Adjusts tone (formal, friendly, strict)
+
+Suggests industry-aligned best practices
+
+AI reference model: GPT-4 fine-tuned for Indian Contract Act
+
+📑 Contract Editor (Full Visual Control)
+Auto-generate contract in a WYSIWYG editor
+
+Features:
+
+Drag/move text boxes
+
+Edit font, size, color, alignment
+
+Highlight / underline / bold tools
+
+Upload images (brand logo, seals, watermark)
+
+Add clause blocks from library
+
+Section preview / outline view
+
+Select any clause → "Enhance with Lexi AI"
+
+Lexi AI options:
+
+Rewrite
+
+Explain
+
+Add legal context
+
+Suggest alternate phrasing
+
+“Save as Template” toggle
+
+Live preview as PDF
+
+"Download", "Export", or "Send for Review"
+
+🤝 Client Portal (Integrated Collaboration)
+Add new clients or connect from previous
+
+View contract status: Drafted / Sent / Opened / Signed
+
+Upload additional docs (PAN, GST, ID)
+
+Share secure links
+
+Client can:
+
+Comment
+
+Sign
+
+Request changes
+
+User can:
+
+Send reminders (manual or AI-assisted)
+
+View client analytics: interaction history, sign delay, # of views
+
+📧 AI Email Assistance
+When sending a contract, Lexi helps write email:
+
+Based on contract content
+
+Personalized to client type
+
+Tones: Friendly / Legal / Follow-up
+
+Email Preview + edit before sending
+
+📁 Templates & Saved Contracts
+All past contracts are saved
+
+"Use as Template" option
+
+Template categories by use-case (Startup, HR, Finance)
+
+Clone contracts → Replace parties/dates with AI autofill
+
+⚖️ Lexi Clause Library (India-Focused)
+Search and insert:
+
+NDAs, IP, Payment, Arbitration, Termination, Confidentiality
+
+Clause metadata:
+
+Explanation
+
+Source Law (e.g., Indian Contract Act Sec. X)
+
+Use-case context
+
+AI-powered filter: suggest clause based on contract type
+
+💬 Lexi AI Tab (Personal Contract Assistant)
+Sidebar tool or full screen
+
+Ask any contract/legal question:
+
+“What’s the standard termination period in India?”
+
+“Explain indemnity in simple terms”
+
+Outputs: Clause, Summary, Explanation, Suggestion
+
+AI is context-aware to ongoing contracts
+
+🧑‍⚖️ Lawyer Marketplace + Video Consult
+In-app marketplace for lawyers
+
+Book 1:1 session (Zoom/Video API)
+
+Categories: Startup, HR, Finance, Real Estate
+
+Features:
+
+Chat with lawyer (messaging)
+
+Upload contract to review
+
+Schedule + Pay (integrated with subscription module)
+
+💳 Subscription & Pay-per-use System
+Free trial + Tiered plans:
+
+Starter
+
+Pro (Recommended)
+
+Elite
+
+Feature gating: AI limit, export limit, legal reviews
+
+Billing dashboard with Razorpay/Cashfree
+
+⚙️ Settings Panel
+Update user info, legal identity (GST, PAN)
+
+Notification control
+
+Enable/disable AI autosuggestions
+
+Save font/theme preferences
+
+💡 UI & ANIMATION GUIDELINES
+Inspired by your uploaded reference:
+Augran-style SaaS dashboard with clean, minimal rounded elements, soft shadows, and glowing CTAs.
+
+Implementation:
+Sidebar Navigation: Collapsible, left-aligned with icons & text
+
+Component Animations: Framer Motion for:
+
+Card entry fade
+
+Clause section slide
+
+Button hover glow
+
+Progress transitions in AI chat form
+
+Color Palette:
+
+Primary Accent: #7F56D9 (Regal Violet)
+
+Secondary: #C3B4F3 (Lavender Glow)
+
+Background: #1B162A (Charcoal Lavender)
+
+Font: Urbanist / Poppins
+
+✅ Final Instructions for Replit:
+Build CreateContract.jsx as modular UI → then split subcomponents (AIFormPrompt, PartyInput, ClauseBuilder)
+
+Use context or redux for state sharing across steps
+
+PDF editor in /editor with rich WYSIWYG logic
+
+LexiAI.js service to handle AI requests
+
+Backend /api/contract handles draft generation, save, template, export
+
+Use .env for OpenAI keys and secure storage

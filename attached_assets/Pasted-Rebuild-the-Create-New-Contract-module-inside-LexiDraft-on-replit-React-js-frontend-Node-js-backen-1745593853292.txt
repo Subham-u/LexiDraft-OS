@@ -1,0 +1,183 @@
+Rebuild the Create New Contract module inside LexiDraft on replit (React.js frontend, Node.js backend). The goal is to create a full-flow, AI-enhanced, legally structured, editable contract system with built-in client sync, document personalization, AI mail drafting, and visual WYSIWYG PDF contract editing. Use existing modules like user dashboard, client portal, and share link system without disruption.”
+
+PHASE 1: Smart Contract Creation Flow
+📍 Step 1: Select Contract Type
+Dropdown: NDA, Founder Agreement, Freelance, Employment, etc.
+
+
+Show category-based suggestions
+
+
+📍 Step 2: Add Parties (Dynamic Field)
+Input fields: Party Name, Role, Jurisdiction
+
+
+“+ Add Party” button to dynamically include multiple clients
+
+
+📍 Step 3: Interactive Prompt Interface
+Instead of rigid form, use chat-style dynamic prompt capture
+
+
+Use LLM to ask relevant follow-up based on contract type
+
+
+Example:
+
+
+ “What is the duration of this agreement?”
+ “Any advance payment mentioned?”
+
+
+
+Store all collected values in structured JSON behind the scenes
+
+
+Lexi AI Suggestions: Auto-recommend previously saved clause data from user history
+
+
+PHASE 2: Full PDF Contract Editor
+🔧 Generate Contract Draft → Launch Visual PDF Editor
+Use rich canvas-based editor (like PDF-lib or Fabric.js + Draft.js combo)
+
+
+Users should be able to:
+
+
+Drag & move text boxes
+
+
+Select text/section → Enhance/Edit with AI
+
+
+Change font, font size, text color, highlights
+
+
+Add images, headers/footers, branding, watermark
+
+
+Live preview before export
+
+
+Optional: Toggle “Legal Layout Mode” to format as per Indian contract standards
+
+
+
+PHASE 3: AI-Assisted Content Features
+Lexi Brain Enhancements
+Any selected paragraph → Button: “Write With Lexi AI”
+
+
+Lexi offers:
+
+
+Rewrite legally
+
+
+Simplify language
+
+
+Add missing clause
+
+
+Add formatting (bold, highlight, legal style)
+
+
+📄 Save as Template
+“Save This Contract Structure” button
+
+
+Save as reusable template in user’s contract library
+
+
+
+PHASE 4: Send to Client + Sync with Client Portal
+📤 Send for Review & Signature
+“Send to Client” CTA → Choose from client list or add new
+
+
+Email client + sharable secure link
+
+
+Lexi AI helps auto-draft the email body based on:
+
+
+Contract context
+
+
+Tone (formal/friendly/reminder)
+
+
+Embedded contract summary
+
+
+🧭 Client Portal Integration
+Sync this contract with existing client portal
+
+
+Show:
+
+
+Contract stage (Drafted / Sent / Viewed / Signed)
+
+
+Client view timestamp
+
+
+Download activity
+
+
+Reminder schedule
+
+
+Allow re-sending email with AI-assisted new draft
+
+
+
+📁 Export & Automation
+📤 Export Options
+Download as: PDF / Word / JSON Contract Schema
+
+
+Add option: “Download with watermark / digital signature block”
+
+
+🔁 Re-use & Automation
+Save contract → Template Library
+
+
+User can reuse with new client by just updating party fields
+
+
+Show modal: “Auto-fill with AI suggestions from past usage?”
+
+
+🧰 TECH MODULES TO USE (Replit Scope)
+Feature
+Tech
+Prompt UI
+React chat-style form with backend LLM prompts
+PDF Editor
+React-PDF + PDF-lib / Fabric.js with editing canvas
+Font/Color Customization
+Tailwind + Draft.js rich editor
+AI Integration
+OpenAI API (fine-tuned clause gen + rewrite prompt engine)
+Client Portal Sync
+React context + MongoDB links between user → client → contract
+Email Drafting
+OpenAI or HuggingFace → Injected values from prompt data
+Export
+jsPDF / html-to-pdf backend renderer
+Signature Workflow
+Optional: SignWell or Native signature stub for phase 2
+
+📣 BONUS USER EXPERIENCE:
+Add progress bar on top during prompt capture
+
+
+Use “Lexi is thinking...” micro-copy during AI tasks
+
+
+Each contract has a status tag (e.g., “Ready to Send”, “Needs Review”, “Completed”)
+

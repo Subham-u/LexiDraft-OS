@@ -1,0 +1,90 @@
+Lexi AI – System-Wide Intelligence Architecture for LexiDraft
+🧭 1. Overall Role of Lexi AI in Platform
+Lexi is not just a chatbot. It’s your legal brain.
+
+Core Role	How Lexi AI Should Behave
+🎯 Contract Creation Advisor	Guides users while drafting by recommending clauses, identifying missing data, and adapting templates based on Indian law
+🧾 Clause Engine	Suggests clause improvements, detects vague legal terms, and rewrites using context
+📤 Communication Assistant	Writes client email reminders, negotiation notes, or “gentle follow-ups” intelligently
+📊 Legal Insight Companion	Generates real-time analytics: risky clauses, common missing components, jurisdiction conflicts
+🧩 Knowledgeable Assistant	Answers legal questions (e.g., “What’s the difference between MOU and Agreement?”) with citations based on Indian legal references
+
+🧱 2. Lexi AI Flow Across the Platform
+🔹 At Dashboard
+Greets user contextually:
+
+“Welcome back Priyo! Want to draft an NDA or review your last contract?”
+
+Quick actions:
+
+“Start New Contract”
+
+“Review last contract”
+
+“Suggest Templates Based on My Industry”
+
+🔹 At ‘Create New Contract’ (Core Flow)
+Stage	Lexi AI Behavior
+📝 Party Input	Suggests required parties and legal identifiers (e.g., company GST, PAN)
+🎯 Intent Understanding	Asks guiding questions:
+
+“What’s the goal of this contract – employment, partnership, or service?”
+| 📄 Clause Generation | Previews and recommends context-aware clause sets, tailored to the user’s objective
+| ⚠️ Risk Warnings |
+
+“Missing jurisdiction clause”
+
+“Ambiguous termination terms – do you want Lexi to fix it?”
+| 🧠 Memory Recall |
+
+“Do you want to reuse terms from your last freelance contract?”
+
+🔹 In the Contract Editor
+Lexi should hover silently, only activating when needed.
+
+Feature	Function
+✍️ Clause Rewriting	User highlights any paragraph → Click “Lexi Rewrite”
+🟨 Risk Highlighting	Automatically flags potential legal risks with tooltips
+🧱 Smart Clause Block	Insert from pre-built India-law-approved clause library (e.g., GDPR, IP Protection, Arbitration)
+📘 Tooltip Explainers	Hover over a legal term → Lexi explains it in simple English
+
+🔹 At Signature & Sharing Stage
+Feature	Function
+🧾 Contract Summary	Lexi generates 5-bullet summary of key points
+📧 Email Assistant	
+
+“Craft a reminder email to the client with soft tone”
+
+“Generate a summary message with contract link”
+| 🧠 Legal Checklist | Confirms: “All parties verified, eSign selected, clause integrity intact”
+
+🧩 3. Dedicated Lexi AI Sidebar – The Legal Copilot
+💻 Sidebar UI (Always Present on Right Side)
+Tab	Functionality
+🧠 Lexi Suggestions	Real-time input based on cursor position and context
+📚 Clause Library	Search, preview, and insert pre-trained clauses by category
+📄 Document Summary	Dynamic, editable summary block of the open contract
+🟡 Highlight & Ask Lexi	Highlight text → Ask:
+
+“Is this enforceable in Maharashtra?”
+“Rewrite this for partnership law”
+| 🗣️ Voice Query Option | Users can speak:
+“Lexi, insert indemnity clause”
+| 📈 Smart Feedback | “This clause is long. Want me to make it concise?”
+| 📎 History & Memory Recall | Pull clauses or text blocks from previous documents
+
+🔐 4. Lexi AI Behavioral Traits
+Attribute	Description
+🇮🇳 India-Centric Law Training	Lexi should understand Indian law structure (e.g., jurisdiction, contract types, stamp act)
+🧠 Memory-Driven	Learns from user’s previous contracts to build style preferences
+📣 Conversational Tone	Human, warm, and intelligent — avoids robotic legalese
+📘 Explain It Like I’m 5 Mode	Breaks down complex clauses for non-lawyers
+💬 Multilingual (Coming Soon)	English + Hindi + regional languages for wide accessibility
+
+🧠 Example Prompt Usage in Each Context
+Situation	Prompt
+In Draft	“Add a termination clause that includes a 30-day notice and penalty”
+After Review	“Summarize this agreement in 3 bullet points”
+For Client Mail	“Write a polite reminder requesting client to review and sign”
+In Clause Editor	“Rewrite this for better clarity without losing legal meaning”
+

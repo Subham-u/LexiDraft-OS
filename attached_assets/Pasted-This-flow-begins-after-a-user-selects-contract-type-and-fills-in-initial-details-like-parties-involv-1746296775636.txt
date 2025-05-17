@@ -1,0 +1,87 @@
+This flow begins after a user selects contract type and fills in initial details like parties involved.
+✅ Step 4: Lexi AI Drafting Workspace
+🧠 Purpose: AI-assisted dynamic drafting that feels personalized and legally sound.
+⚙️ Features:
+Smart Prompt Section: User sees a conversational prompt field with hints like:
+
+“Describe the scope of work and payment terms...”
+
+Lexi Brain Suggestions: Auto-populates legal-safe content blocks based on contract type + user’s past behavior or saved templates
+
+Multi-section Format: Key areas (e.g., Terms, Confidentiality, Termination, etc.) separated as expandable cards
+
+Real-time Input Guidance: LexiAI suggests wording, flags missing clauses, and highlights weak terms (🔴 weak clause alerts)
+
+Clause Library Access: User can insert, edit, or replace clauses from an India-specific clause bank (e.g., GST, Data Privacy, Non-Solicit)
+
+Autosave Drafts + “Save as Template” feature for future reuse
+
+🔐 Legal Trust Layer:
+Jurisdiction presets auto-added
+
+Clause localization based on region (State-level legal preferences)
+
+✅ Step 5: Visual Contract Editor (Full WYSIWYG Editor)
+✍️ Purpose: Enhance user control — create legally formatted yet visually appealing contracts.
+⚙️ Features:
+Drag & Drop Editing (like Canva for Contracts)
+
+Section formatting: fonts, color, headings, highlights
+
+Text Box Styling: Resize, position, style individual paragraphs
+
+Upload Logo or Company Header
+
+Smart Fields: Dynamic placeholders (e.g., {{ClientName}}, {{Date}}, {{Amount}}) auto-populated
+
+Image Support: Insert ID proofs, annexures, etc.
+
+Color-Coded Clause Tags: Highlight "Important", "Optional", "LexiRecommended"
+
+💡 Bonus:
+Toggle: Legal View (Plain) vs Visual View (Client-Friendly)
+
+Save multiple versions of the contract (v1, v2, etc.)
+
+✅ Step 6: Verification & Signature Setup
+🔐 Purpose: Instill trust & make legal execution seamless.
+⚙️ Options Provided:
+Aadhaar eSign (via DigiLocker)
+
+Digital Signature Certificate (DSC Upload)
+
+LexiSign (OTP-based Auth & Capture)
+
+Multi-party signature management
+
+Checkbox + AI-powered final clause review:
+
+“Do you want Lexi to review risky terms before sending?”
+
+Final Consent: ✅ "I confirm all contract terms are reviewed and ready to send."
+
+✅ Step 7: Share & Follow-up Workflow
+📤 Purpose: Deliver, track, and close the loop efficiently.
+⚙️ Sharing Options:
+🔗 Sharable Contract Link (unique, tracked)
+
+📧 Send via Email with LexiAI-generated message
+
+📲 WhatsApp Sharing (with PDF preview option)
+
+✉️ Smart Follow-Up:
+Email opens + document view tracking
+
+Auto-schedule reminder (e.g., 24hr, 3 days, 7 days)
+
+Email Template Suggestions (e.g., “Polite Nudge”, “Urgent Reminder”)
+
+CRM log of every client’s interaction history
+
+🧠 Lexi AI Bonus:
+Suggests improvements post client feedback
+
+Auto-creates post-signing steps (like task checklists or invoice reminders)
+
+One-click “Export PDF / Word / Share to CRM / Archive”
+
