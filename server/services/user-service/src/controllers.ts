@@ -41,8 +41,9 @@ export const userControllers = {
           uid: user.uid,
           username: user.username,
           email: user.email,
+          fullName: user.fullName,
           role: user.role,
-          profileCompleted: user.profileCompleted
+          avatar: user.avatar
         }
       };
     } catch (error) {
@@ -68,11 +69,9 @@ export const userControllers = {
           uid: user.uid,
           username: user.username,
           email: user.email,
+          fullName: user.fullName,
           role: user.role,
-          name: user.name,
-          phone: user.phone,
-          company: user.company,
-          profileCompleted: user.profileCompleted,
+          avatar: user.avatar,
           createdAt: user.createdAt
         }
       };
@@ -94,11 +93,9 @@ export const userControllers = {
           uid: result.uid,
           username: result.username,
           email: result.email,
+          fullName: result.fullName,
           role: result.role,
-          name: result.name,
-          phone: result.phone,
-          company: result.company,
-          profileCompleted: result.profileCompleted,
+          avatar: result.avatar,
           createdAt: result.createdAt
         }
       };
