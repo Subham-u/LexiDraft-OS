@@ -1,100 +1,67 @@
 /**
- * Error handling middleware for LexiDraft
+ * Error handling middleware
  */
 import { Request, Response, NextFunction } from 'express';
 import { createLogger } from '../utils/logger';
 
 const logger = createLogger('error-middleware');
 
-/**
- * Custom API error with HTTP status code
- */
+// Custom API error class
 export class ApiError extends Error {
   status: number;
-  code?: string;
-  details?: any;
-
-  constructor(message: string, status: number, code?: string, details?: any) {
+  
+  constructor(status: number, message: string) {
     super(message);
-    this.name = 'ApiError';
     this.status = status;
-    this.code = code;
-    this.details = details;
+    this.name = this.constructor.name;
+    Error.captureStackTrace(this, this.constructor);
   }
-
-  // Factory methods for common errors
-  static badRequest(message: string = 'Bad Request', code?: string, details?: any): ApiError {
-    return new ApiError(message, 400, code, details);
+  
+  // Utility methods for common error types
+  static badRequest(message: string) {
+    return new ApiError(400, message);
   }
-
-  static unauthorized(message: string = 'Unauthorized', code?: string, details?: any): ApiError {
-    return new ApiError(message, 401, code, details);
+  
+  static unauthorized(message: string) {
+    return new ApiError(401, message);
   }
-
-  static forbidden(message: string = 'Forbidden', code?: string, details?: any): ApiError {
-    return new ApiError(message, 403, code, details);
+  
+  static forbidden(message: string) {
+    return new ApiError(403, message);
   }
-
-  static notFound(message: string = 'Not Found', code?: string, details?: any): ApiError {
-    return new ApiError(message, 404, code, details);
+  
+  static notFound(message: string) {
+    return new ApiError(404, message);
   }
-
-  static conflict(message: string = 'Conflict', code?: string, details?: any): ApiError {
-    return new ApiError(message, 409, code, details);
-  }
-
-  static internal(message: string = 'Internal Server Error', code?: string, details?: any): ApiError {
-    return new ApiError(message, 500, code, details);
+  
+  static internal(message: string) {
+    return new ApiError(500, message);
   }
 }
 
-/**
- * Async handler wrapper to avoid try/catch blocks in route handlers
- */
+// Error handler for async route handlers
 export const asyncHandler = (fn: Function) => (req: Request, res: Response, next: NextFunction) => {
   Promise.resolve(fn(req, res, next)).catch(next);
 };
 
-/**
- * Error handling middleware
- */
+// Error handling middleware
 export const errorHandler = (err: any, req: Request, res: Response, next: NextFunction) => {
-  // Log the error
-  logger.error(`Error occurred: ${err.message}`, { 
-    error: err, 
-    path: req.path, 
-    method: req.method,
-    ip: req.ip
+  const status = err.status || 500;
+  const message = err.message || 'Internal Server Error';
+  
+  logger.error(`API Error: ${message}`, { 
+    path: req.path,
+    status,
+    error: err.stack
   });
-
-  // Handle ApiError
-  if (err instanceof ApiError) {
-    return res.status(err.status).json({
-      success: false,
-      error: err.code || 'api_error',
-      message: err.message,
-      details: err.details
-    });
-  }
-
-  // Handle validation errors (e.g., from Zod)
-  if (err.name === 'ZodError') {
-    return res.status(400).json({
-      success: false,
-      error: 'validation_error',
-      message: 'Validation Error',
-      details: err.errors
-    });
-  }
-
-  // Handle other errors
-  const statusCode = err.statusCode || 500;
-  const message = err.message || 'Something went wrong';
-
-  return res.status(statusCode).json({
+  
+  // Don't expose stack traces in production
+  const errorResponse = {
     success: false,
-    error: 'server_error',
-    message: statusCode === 500 ? 'Internal Server Error' : message,
-    details: process.env.NODE_ENV === 'development' ? err : undefined
-  });
+    message,
+    status,
+    ...(process.env.NODE_ENV !== 'production' && { stack: err.stack })
+  };
+  
+  res.status(status).json(errorResponse);
 };

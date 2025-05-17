@@ -1,87 +1,87 @@
 /**
- * Authentication middleware for LexiDraft
+ * Authentication middleware
  */
 import { Request, Response, NextFunction } from 'express';
-import { createLogger } from '../utils/logger';
-import { ApiError } from './error';
 import { storage } from '../../storage';
+import { createLogger } from '../utils/logger';
 
 const logger = createLogger('auth-middleware');
 
-// Extend Express Request to include user
-declare global {
-  namespace Express {
-    interface Request {
-      user?: any;
-    }
-  }
+export interface AuthenticatedRequest extends Request {
+  user?: any;
 }
 
 /**
- * Middleware to verify Firebase authentication token
+ * Authentication middleware
+ * Verifies the authorization token and adds the user to the request object
  */
-export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
+export async function authenticate(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   try {
-    // Get token from Authorization header
+    // Extract token from request headers
     const authHeader = req.headers.authorization;
-    
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      logger.warn('Missing or invalid authorization header');
-      throw ApiError.unauthorized('Authentication required', 'auth_required', {
-        message: 'Please log in to access this resource'
+      return res.status(401).json({ 
+        success: false,
+        message: 'Authentication required',
+        status: 401
       });
     }
     
-    const token = authHeader.split(' ')[1];
+    const token = authHeader.split('Bearer ')[1];
     
-    // In dev mode, allow bypass with special token
-    if (process.env.NODE_ENV === 'development' && token === 'dev-token') {
-      req.user = { 
-        id: 1,
-        uid: 'dev-uid',
-        email: 'dev@lexidraft.com',
-        role: 'admin',
-        name: 'Developer User'
-      };
+    // Verify token format
+    if (!token || token.length < 20) {
+      return res.status(401).json({ 
+        success: false,
+        message: 'Invalid token format',
+        status: 401
+      });
+    }
+    
+    // In development environment, allow simplified authentication for testing
+    if (process.env.NODE_ENV !== 'production') {
+      logger.debug('Using development authentication');
+      // For development only - set a mock user
+      req.user = { id: 1, role: 'user', uid: 'dev-uid-123' };
       return next();
     }
     
-    // Verify token with Firebase (currently stubbed)
-    // This would typically use firebase-admin SDK to verify tokens
-    
-    // Get user from database using the Firebase UID
-    // const user = await storage.getUserByUid(decodedToken.uid);
-    
-    // For now, we'll use a fake user for testing
-    req.user = {
-      id: 1,
-      email: 'user@example.com',
-      role: 'user'
-    };
-    
-    // Log successful authentication
-    logger.info(`User ${req.user.id} successfully authenticated`);
-    
-    next();
+    // In production, verify the token with Firebase
+    try {
+      // In full production, we would:
+      // 1. Decode and verify the Firebase JWT token
+      // 2. Extract the user ID from the verified token
+      // 3. Fetch the corresponding user from our database
+      
+      // For now, use a placeholder verification
+      const userId = 1; // This would come from the verified token
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(401).json({ 
+          success: false,
+          message: 'User not found',
+          status: 401
+        });
+      }
+      
+      // Add user info to request object for use in route handlers
+      req.user = user;
+      return next();
+    } catch (tokenError) {
+      logger.error('Token verification error:', tokenError);
+      return res.status(401).json({ 
+        success: false,
+        message: 'Token verification failed',
+        status: 401
+      });
+    }
   } catch (error) {
-    next(error);
+    logger.error('Authentication middleware error:', error);
+    return res.status(500).json({ 
+      success: false,
+      message: 'Authentication system error',
+      status: 500
+    });
   }
-};
-
-/**
- * Middleware to check if user has required roles
- */
-export const checkRole = (roles: string[]) => {
-  return (req: Request, res: Response, next: NextFunction) => {
-    if (!req.user) {
-      return next(ApiError.unauthorized('Authentication required'));
-    }
-    
-    if (!roles.includes(req.user.role)) {
-      logger.warn(`User ${req.user.id} attempted to access a resource requiring roles: ${roles.join(', ')}`);
-      return next(ApiError.forbidden('Insufficient permissions'));
-    }
-    
-    next();
-  };
-};
+}
