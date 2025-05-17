@@ -1,71 +1,51 @@
 /**
- * Central configuration for LexiDraft
- * Exports all configuration settings from individual modules
+ * Shared configuration for LexiDraft
+ * Main config file that exports all configuration settings
  */
 
-export * from './service';
-export * from './database';
-export * from './redis';
-
-import { ENV, IS_PRODUCTION } from './service';
-import { DB_CONFIG } from './database';
-import { REDIS_CONFIG } from './redis';
-
-// API keys and external service configurations
-export const OPENAI_CONFIG = {
-  apiKey: process.env.OPENAI_API_KEY,
-  available: !!process.env.OPENAI_API_KEY,
-  defaultModel: 'gpt-4o' // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
+// Server configuration
+export const SERVER_CONFIG = {
+  port: process.env.PORT ? parseInt(process.env.PORT) : 5000,
+  host: process.env.HOST || '0.0.0.0',
+  env: process.env.NODE_ENV || 'development',
+  apiPrefix: '/api',
+  isProduction: process.env.NODE_ENV === 'production',
+  isDevelopment: process.env.NODE_ENV === 'development',
+  frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5000'
 };
 
-export const CASHFREE_CONFIG = {
-  appId: process.env.CASHFREE_APP_ID,
-  secretKey: process.env.CASHFREE_SECRET_KEY,
-  available: !!(process.env.CASHFREE_APP_ID && process.env.CASHFREE_SECRET_KEY),
-  env: IS_PRODUCTION ? 'PRODUCTION' : 'TEST',
-  apiUrls: {
-    TEST: 'https://sandbox.cashfree.com/pg',
-    PRODUCTION: 'https://api.cashfree.com/pg'
-  }
+// Database configuration 
+export const DATABASE_CONFIG = {
+  url: process.env.DATABASE_URL,
+  maxConnections: process.env.DB_MAX_CONNECTIONS ? parseInt(process.env.DB_MAX_CONNECTIONS) : 10,
+  idleTimeout: process.env.DB_IDLE_TIMEOUT ? parseInt(process.env.DB_IDLE_TIMEOUT) : 30000
 };
 
-export const SENDGRID_CONFIG = {
-  apiKey: process.env.SENDGRID_API_KEY,
-  available: !!process.env.SENDGRID_API_KEY,
-  defaultSender: 'notifications@lexidraft.com'
+// Security configuration
+export const SECURITY_CONFIG = {
+  jwtSecret: process.env.JWT_SECRET || 'lexidraft-dev-jwt-secret',
+  jwtExpiresIn: process.env.JWT_EXPIRES_IN || '1d',
+  bcryptSaltRounds: 10
 };
 
-export const FIREBASE_CONFIG = {
-  apiKey: process.env.VITE_FIREBASE_API_KEY,
-  projectId: process.env.VITE_FIREBASE_PROJECT_ID,
-  appId: process.env.VITE_FIREBASE_APP_ID,
-  available: !!(process.env.VITE_FIREBASE_API_KEY && 
-              process.env.VITE_FIREBASE_PROJECT_ID && 
-              process.env.VITE_FIREBASE_APP_ID)
+// Email configuration
+export const EMAIL_CONFIG = {
+  from: process.env.EMAIL_FROM || 'noreply@lexidraft.app',
+  sendgridApiKey: process.env.SENDGRID_API_KEY
 };
 
-// Service status check and logging
-export function checkServiceAvailability() {
-  return {
-    database: DB_CONFIG.available,
-    redis: REDIS_CONFIG.available,
-    openai: OPENAI_CONFIG.available,
-    cashfree: CASHFREE_CONFIG.available,
-    sendgrid: SENDGRID_CONFIG.available,
-    firebase: FIREBASE_CONFIG.available
-  };
+// Export service information
+export { SERVICES } from './service';
+
+// Utility function to log service status
+export function logServiceStatus(name: string, port: number) {
+  console.log(`✨ ${name} running on port ${port}`);
 }
 
-// Log service availability
-export function logServiceStatus() {
-  const services = checkServiceAvailability();
-  const unavailableServices = Object.entries(services)
-    .filter(([_, available]) => !available)
-    .map(([name]) => name);
-
-  if (unavailableServices.length > 0) {
-    console.warn(`⚠️ WARNING: The following services are unavailable: ${unavailableServices.join(', ')}`);
-  } else {
-    console.log('✅ All services are available');
-  }
-}
+// Export all configurations
+export default {
+  server: SERVER_CONFIG,
+  database: DATABASE_CONFIG,
+  security: SECURITY_CONFIG,
+  email: EMAIL_CONFIG
+};

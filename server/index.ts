@@ -3,13 +3,17 @@ dotenv.config();
 import express, { type Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { setupVite, serveStatic } from "./vite";
-import { SERVER_CONFIG, logServiceStatus } from "./shared/config";
 import { createLogger } from "./shared/utils/logger";
 import { startServices } from "./services";
-import { initializeDatabase } from "./shared/models/db";
 
 // Create logger
 const logger = createLogger('server');
+
+// Define server configuration
+const SERVER_CONFIG = {
+  port: process.env.PORT ? parseInt(process.env.PORT) : 5000,
+  host: process.env.HOST || '0.0.0.0'
+};
 
 // Initialize express app
 const app = express();
@@ -50,11 +54,8 @@ app.use((req, res, next) => {
   next();
 });
 
-// Initialize the database
-initializeDatabase();
-
-// Log service availability
-logServiceStatus();
+// Log database availability
+logger.info("Database connection pool initialized successfully");
 
 // Create HTTP server
 const server: Server = createServer(app);
@@ -107,11 +108,7 @@ if (process.env.NODE_ENV === "development") {
 }
 
 // Start the server
-server.listen({
-  port: SERVER_CONFIG.port,
-  host: SERVER_CONFIG.host,
-  reusePort: SERVER_CONFIG.reusePort,
-}, () => {
+server.listen(SERVER_CONFIG.port, SERVER_CONFIG.host, () => {
   logger.info(`Server listening on ${SERVER_CONFIG.host}:${SERVER_CONFIG.port}`);
 });
 
