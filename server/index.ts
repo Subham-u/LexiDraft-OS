@@ -169,6 +169,7 @@ if (process.env.NODE_ENV === 'development') {
               <div class="loading-text">Loading LexiDraft...</div>
             </div>
           </div>
+          <script type="module" src="/client/src/main.tsx"></script>
         </body>
       </html>
     `);

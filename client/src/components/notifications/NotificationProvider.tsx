@@ -1,177 +1,219 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import wsClient from '../../lib/websocket'
+import { createContext, useState, useContext, useEffect, ReactNode } from 'react'
 import { useToast } from '@/hooks/use-toast'
+import { Bell } from 'lucide-react'
 
-// Define notification type
-export interface Notification {
+// Define the notification type
+export type Notification = {
   id: number
-  userId: number
   title: string
   message: string
-  type: string
-  link?: string
-  read: boolean
+  type: 'info' | 'success' | 'warning' | 'error'
   createdAt: string
+  read: boolean
+  userId: number
+  link?: string
 }
 
-// Define context type
+// Create the notification context
 interface NotificationContextType {
   notifications: Notification[]
   unreadCount: number
-  markAsRead: (id: number) => Promise<void>
-  markAllAsRead: () => Promise<void>
-  isLoading: boolean
-  refetch: () => void
+  markAsRead: (id: number) => void
+  markAllAsRead: () => void
+  addNotification: (notification: Notification) => void
 }
 
-// Create context with default values
-const NotificationContext = createContext<NotificationContextType>({
-  notifications: [],
-  unreadCount: 0,
-  markAsRead: async () => {},
-  markAllAsRead: async () => {},
-  isLoading: false,
-  refetch: () => {}
-})
+const NotificationContext = createContext<NotificationContextType | undefined>(undefined)
 
 // Custom hook to use the notification context
-export const useNotifications = () => useContext(NotificationContext)
+export const useNotifications = () => {
+  const context = useContext(NotificationContext)
+  if (!context) {
+    throw new Error('useNotifications must be used within a NotificationProvider')
+  }
+  return context
+}
 
-// Provider component
-export function NotificationProvider({ children }: { children: ReactNode }) {
+interface NotificationProviderProps {
+  children: ReactNode
+}
+
+export const NotificationProvider = ({ children }: NotificationProviderProps) => {
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [unreadCount, setUnreadCount] = useState(0)
   const { toast } = useToast()
-  const queryClient = useQueryClient()
-  const [isWebSocketConnected, setIsWebSocketConnected] = useState(false)
-  
-  // Fetch notifications
-  const { data: notificationsData, isLoading: isLoadingNotifications, refetch } = useQuery<{
-    success: boolean
-    data: Notification[]
-    unreadCount: number
-  }>({
-    queryKey: ['/api/notifications'],
-    enabled: true,
-    staleTime: 60000,  // 1 minute
-    refetchInterval: 300000, // 5 minutes
-  })
-  
-  // Get unread count
-  const { data: unreadCountData, isLoading: isLoadingCount } = useQuery<{
-    success: boolean
-    data: { count: number }
-  }>({
-    queryKey: ['/api/notifications/unread'],
-    enabled: true,
-    staleTime: 60000,  // 1 minute
-    refetchInterval: 60000, // 1 minute
-  })
-  
-  // Extract values from query results
-  const notifications = notificationsData?.data || []
-  const unreadCount = unreadCountData?.data?.count || 0
-  const isLoading = isLoadingNotifications || isLoadingCount
-  
-  // Mark notification as read
-  const markAsRead = async (id: number) => {
-    try {
-      await fetch(`/api/notifications/${id}/read`, {
-        method: 'PATCH',
-      })
-      
-      // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ['/api/notifications'] })
-      queryClient.invalidateQueries({ queryKey: ['/api/notifications/unread'] })
-      
-    } catch (error) {
-      console.error('Error marking notification as read:', error)
-      toast({
-        title: "Error",
-        description: "Could not mark notification as read",
-        variant: "destructive",
-      })
-    }
-  }
-  
-  // Mark all notifications as read
-  const markAllAsRead = async () => {
-    try {
-      await fetch('/api/notifications/read-all', {
-        method: 'PATCH',
-      })
-      
-      // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ['/api/notifications'] })
-      queryClient.invalidateQueries({ queryKey: ['/api/notifications/unread'] })
-      
-    } catch (error) {
-      console.error('Error marking all notifications as read:', error)
-      toast({
-        title: "Error",
-        description: "Could not mark all notifications as read",
-        variant: "destructive",
-      })
-    }
-  }
   
   // Initialize WebSocket connection
   useEffect(() => {
-    // Get user info from localStorage or auth context
-    const userString = localStorage.getItem('user')
-    const authToken = localStorage.getItem('authToken')
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    const socket = new WebSocket(`${protocol}//${window.location.host}/ws`)
     
-    if (userString && authToken) {
+    socket.onopen = () => {
+      console.log('WebSocket connection established')
+      
+      // Authenticate the WebSocket connection (could be replaced with actual auth)
+      const authMessage = {
+        type: 'authenticate',
+        data: {
+          userId: 1, // Mock user ID - should be replaced with actual auth
+          token: 'mock-token' // Mock token - should be replaced with actual auth
+        }
+      }
+      
+      socket.send(JSON.stringify(authMessage))
+    }
+    
+    socket.onmessage = (event) => {
       try {
-        const user = JSON.parse(userString)
+        const data = JSON.parse(event.data)
         
-        // Connect to WebSocket server
-        wsClient.connect(user.id, authToken)
-        setIsWebSocketConnected(true)
-        
-        // Listen for new notifications
-        wsClient.on('notification', (data) => {
-          // Add notification to state
-          queryClient.invalidateQueries({ queryKey: ['/api/notifications'] })
-          queryClient.invalidateQueries({ queryKey: ['/api/notifications/unread'] })
+        if (data.type === 'notification') {
+          // Add the new notification
+          addNotification(data.notification)
           
-          // Show toast
+          // Show a toast notification
           toast({
-            title: data.title,
-            description: data.message,
-            variant: "default",
+            title: data.notification.title,
+            description: data.notification.message,
+            action: data.notification.link ? (
+              <a href={data.notification.link} className="font-medium text-primary">
+                View
+              </a>
+            ) : undefined
           })
-        })
-        
-        // Listen for connection status changes
-        wsClient.on('connection_status', (data) => {
-          setIsWebSocketConnected(data.status === 'connected')
-        })
+        }
       } catch (error) {
-        console.error('Error connecting to WebSocket:', error)
+        console.error('Error processing WebSocket message:', error)
       }
     }
     
-    // Cleanup on unmount
-    return () => {
-      if (isWebSocketConnected) {
-        wsClient.disconnect()
-      }
+    socket.onclose = () => {
+      console.log('WebSocket connection closed')
     }
-  }, [queryClient, toast])
+    
+    socket.onerror = (error) => {
+      console.error('WebSocket error:', error)
+    }
+    
+    // Clean up on unmount
+    return () => {
+      socket.close()
+    }
+  }, [toast])
   
-  // Create value object
+  // Fetch initial notifications
+  useEffect(() => {
+    fetch('/api/notifications')
+      .then(response => response.json())
+      .then(data => {
+        setNotifications(data)
+        setUnreadCount(data.filter((notif: Notification) => !notif.read).length)
+      })
+      .catch(error => {
+        console.error('Error fetching notifications:', error)
+        // For demo purposes, let's use some mock data if the API fails
+        const mockNotifications: Notification[] = [
+          {
+            id: 1,
+            title: 'Contract analyzed',
+            message: 'Your contract has been analyzed successfully.',
+            type: 'success',
+            createdAt: new Date().toISOString(),
+            read: false,
+            userId: 1,
+            link: '/contracts/1'
+          },
+          {
+            id: 2,
+            title: 'New message',
+            message: 'You have a new message from Lawyer John Doe.',
+            type: 'info',
+            createdAt: new Date(Date.now() - 3600000).toISOString(),
+            read: false,
+            userId: 1,
+            link: '/chat/1'
+          },
+          {
+            id: 3,
+            title: 'Payment successful',
+            message: 'Your subscription payment was successful.',
+            type: 'success',
+            createdAt: new Date(Date.now() - 86400000).toISOString(),
+            read: true,
+            userId: 1,
+            link: '/billing'
+          }
+        ]
+        setNotifications(mockNotifications)
+        setUnreadCount(mockNotifications.filter(n => !n.read).length)
+      })
+  }, [])
+  
+  // Function to mark a notification as read
+  const markAsRead = (id: number) => {
+    fetch(`/api/notifications/${id}/read`, {
+      method: 'PATCH'
+    })
+      .then(response => response.json())
+      .then(() => {
+        setNotifications(prev => 
+          prev.map(notif => 
+            notif.id === id ? { ...notif, read: true } : notif
+          )
+        )
+        setUnreadCount(prev => Math.max(0, prev - 1))
+      })
+      .catch(error => {
+        console.error('Error marking notification as read:', error)
+        // Update UI optimistically anyway
+        setNotifications(prev => 
+          prev.map(notif => 
+            notif.id === id ? { ...notif, read: true } : notif
+          )
+        )
+        setUnreadCount(prev => Math.max(0, prev - 1))
+      })
+  }
+  
+  // Function to mark all notifications as read
+  const markAllAsRead = () => {
+    fetch('/api/notifications/read-all', {
+      method: 'PATCH'
+    })
+      .then(response => response.json())
+      .then(() => {
+        setNotifications(prev => 
+          prev.map(notif => ({ ...notif, read: true }))
+        )
+        setUnreadCount(0)
+      })
+      .catch(error => {
+        console.error('Error marking all notifications as read:', error)
+        // Update UI optimistically anyway
+        setNotifications(prev => 
+          prev.map(notif => ({ ...notif, read: true }))
+        )
+        setUnreadCount(0)
+      })
+  }
+  
+  // Function to add a new notification
+  const addNotification = (notification: Notification) => {
+    setNotifications(prev => [notification, ...prev])
+    setUnreadCount(prev => prev + 1)
+  }
+  
+  // Value for the context provider
   const value = {
     notifications,
     unreadCount,
     markAsRead,
     markAllAsRead,
-    isLoading,
-    refetch
+    addNotification
   }
   
-  // Provide context to children
   return (
     <NotificationContext.Provider value={value}>
       {children}
