@@ -793,7 +793,66 @@ export default function NewContractWizard({ isOpen, onClose }: { isOpen: boolean
   };
 
   // Navigation functions
-  const goToNextStep = () => setStep(prev => Math.min(prev + 1, totalSteps));
+  const goToNextStep = () => {
+    // Get current step before incrementing
+    const currentStep = step;
+    
+    // If we're moving to the final step (8), save the contract
+    if (currentStep === 7) {
+      saveContractToDatabase();
+    } else {
+      // Normal step progression
+      setStep(prev => Math.min(prev + 1, totalSteps));
+    }
+  };
+  
+  // Function to save contract to the database
+  const saveContractToDatabase = () => {
+    setIsProcessing(true);
+    
+    // Get contract data from form
+    const formData = form.getValues();
+    
+    // Prepare contract data for submission
+    const contractData = {
+      title: formData.title,
+      description: formData.description || `${formData.title} - created on ${new Date().toLocaleDateString()}`,
+      type: formData.contractType,
+      status: 'draft',
+      parties: JSON.stringify(formData.parties),
+      jurisdiction: formData.jurisdiction,
+      startDate: formData.startDate || new Date().toISOString(),
+      endDate: formData.endDate,
+      content: JSON.stringify({
+        clauses: formData.clauses,
+        appearance: formData.appearance,
+        aiResponses: formData.aiPromptResponses
+      }),
+      userId: user.id
+    };
+    
+    // Submit contract to backend
+    createContractMutation.mutate(contractData, {
+      onSuccess: (data) => {
+        // Update saved contract ID
+        const contractId = data.data?.id;
+        setSavedContractId(contractId);
+        
+        // Generate a unique certificate ID
+        const certId = 'CRT' + Math.floor(Math.random() * 9000000 + 1000000);
+        setCertificateId(certId);
+        
+        // Proceed to final step
+        setStep(8);
+        setIsProcessing(false);
+      },
+      onError: () => {
+        setIsProcessing(false);
+        // Stay on current step if there's an error
+      }
+    });
+  };
+  
   const goToPrevStep = () => setStep(prev => Math.max(prev - 1, 1));
   
   // Generate PDF preview
