@@ -102,6 +102,45 @@ import directApiRoutes from './api.routes';
 app.use(directApiRoutes);
 app.use('/api', apiRoutes);
 
+// Serve static files from the client/dist folder in development
+if (process.env.NODE_ENV === 'development') {
+  // Set up a fallback route to handle client-side routing
+  app.use('*', (req, res, next) => {
+    if (req.originalUrl.startsWith('/api') || req.originalUrl.startsWith('/ws')) {
+      return next();
+    }
+    
+    // Fallback to index.html for client routes
+    logger.info(`Serving frontend for path: ${req.originalUrl}`);
+    
+    // For development, return a minimal HTML that points to the Vite dev server
+    res.send(`
+      <!DOCTYPE html>
+      <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>LexiDraft</title>
+        </head>
+        <body>
+          <div id="root"></div>
+          <script type="module">
+            import RefreshRuntime from 'http://localhost:5173/@react-refresh'
+            RefreshRuntime.injectIntoGlobalHook(window)
+            window.$RefreshReg$ = () => {}
+            window.$RefreshSig$ = () => (type) => type
+            window.__vite_plugin_react_preamble_installed__ = true
+          </script>
+          <script type="module" src="http://localhost:5173/@vite/client"></script>
+          <script type="module" src="http://localhost:5173/src/main.tsx"></script>
+        </body>
+      </html>
+    `);
+  });
+  
+  logger.info('Frontend serving middleware active');
+}
+
 // Global error handler
 app.use(errorHandler);
 
