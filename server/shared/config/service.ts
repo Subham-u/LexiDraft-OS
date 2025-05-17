@@ -1,68 +1,52 @@
 /**
  * Service configuration for LexiDraft
+ * Defines service paths, names and environment configurations
  */
 
-// Environment configuration
+// Define environment
 export const ENV = process.env.NODE_ENV || 'development';
 export const IS_PRODUCTION = ENV === 'production';
-export const IS_DEVELOPMENT = ENV === 'development';
 
-// Server configuration
-export const SERVER_CONFIG = {
-  port: process.env.PORT ? parseInt(process.env.PORT) : 5000,
-  host: '0.0.0.0',
-  reusePort: true,
-  basePath: '/api'
-};
-
-// Services configuration with auto port assignment
+// Define services
 export const SERVICES = {
-  // Static port assignment
-  gateway: {
-    port: SERVER_CONFIG.port,
-    path: '/'
-  },
-  // Dynamic port assignments - will be assigned at runtime
   user: {
-    port: 0, // Will be assigned at runtime
+    name: 'user-service',
     path: '/user'
   },
+  contract: {
+    name: 'contract-service',
+    path: '/contract'
+  },
   lawyer: {
-    port: 0,
-    path: '/lawyers'
+    name: 'lawyer-service',
+    path: '/lawyer'
   },
   client: {
-    port: 0,
-    path: '/clients'
-  },
-  contract: {
-    port: 0,
-    path: '/contracts'
+    name: 'client-service',
+    path: '/client'
   },
   consultation: {
-    port: 0,
-    path: '/consultations'
+    name: 'consultation-service',
+    path: '/consultation'
   },
   payment: {
-    port: 0,
-    path: '/payments'
+    name: 'payment-service',
+    path: '/payment'
   },
   ai: {
-    port: 0,
+    name: 'ai-service',
     path: '/ai'
   },
   notification: {
-    port: 0,
-    path: '/notifications'
+    name: 'notification-service',
+    path: '/notification'
   },
   search: {
-    port: 0,
+    name: 'search-service',
     path: '/search'
+  },
+  template: {
+    name: 'template-service',
+    path: '/template'
   }
-};
-
-// Common service configuration
-export const SERVICE_CONFIG = {
-  timeout: 30000, // 30 seconds timeout for service calls
-  retries: 3, // Number of retries for failed service calls
 };
