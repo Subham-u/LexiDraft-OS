@@ -6,12 +6,38 @@ import { asyncHandler, ApiError } from '../middleware/error';
 import { authenticate } from '../middleware/auth';
 import { createLogger } from '../utils/logger';
 import * as analysisService from '../services/analysis.service';
+import * as aiAnalysisService from '../services/ai-analysis.service';
 
 const router: Router = express.Router();
 const logger = createLogger('analysis-routes');
 
 /**
- * Generate analysis for a contract
+ * Generate AI analysis for a contract
+ * @route POST /api/analysis/contracts/:contractId/ai
+ */
+router.post("/contracts/:contractId/ai", authenticate(), asyncHandler(async (req: Request, res: Response) => {
+  if (!req.user) {
+    throw ApiError.unauthorized('Authentication required');
+  }
+  
+  const contractId = parseInt(req.params.contractId);
+  
+  if (isNaN(contractId)) {
+    throw ApiError.badRequest('Invalid contract ID');
+  }
+  
+  logger.info(`Generating AI analysis for contract: ${contractId} by user: ${req.user.id}`);
+  
+  const analysis = await aiAnalysisService.analyzeContract(contractId, req.user.id);
+  
+  return res.status(201).json({
+    success: true,
+    data: analysis
+  });
+}));
+
+/**
+ * Generate manual analysis for a contract (legacy)
  * @route POST /api/analysis/contracts/:contractId
  */
 router.post("/contracts/:contractId", authenticate(), asyncHandler(async (req: Request, res: Response) => {
@@ -32,6 +58,87 @@ router.post("/contracts/:contractId", authenticate(), asyncHandler(async (req: R
   return res.status(201).json({
     success: true,
     data: analysis
+  });
+}));
+
+/**
+ * Get AI suggestions for improving a specific clause
+ * @route POST /api/analysis/contracts/:contractId/clauses/:clauseId/suggestions
+ */
+router.post("/contracts/:contractId/clauses/:clauseId/suggestions", authenticate(), asyncHandler(async (req: Request, res: Response) => {
+  if (!req.user) {
+    throw ApiError.unauthorized('Authentication required');
+  }
+  
+  const contractId = parseInt(req.params.contractId);
+  const clauseId = req.params.clauseId;
+  
+  if (isNaN(contractId)) {
+    throw ApiError.badRequest('Invalid contract ID');
+  }
+  
+  if (!clauseId) {
+    throw ApiError.badRequest('Clause ID is required');
+  }
+  
+  logger.info(`Generating clause improvement suggestions for contract: ${contractId}, clause: ${clauseId}`);
+  
+  const suggestions = await aiAnalysisService.suggestClauseImprovements(contractId, req.user.id, clauseId);
+  
+  return res.json({
+    success: true,
+    data: suggestions
+  });
+}));
+
+/**
+ * Identify missing clauses for a contract
+ * @route GET /api/analysis/contracts/:contractId/missing-clauses
+ */
+router.get("/contracts/:contractId/missing-clauses", authenticate(), asyncHandler(async (req: Request, res: Response) => {
+  if (!req.user) {
+    throw ApiError.unauthorized('Authentication required');
+  }
+  
+  const contractId = parseInt(req.params.contractId);
+  
+  if (isNaN(contractId)) {
+    throw ApiError.badRequest('Invalid contract ID');
+  }
+  
+  logger.info(`Identifying missing clauses for contract: ${contractId}`);
+  
+  const missingClauses = await aiAnalysisService.identifyMissingClauses(contractId, req.user.id);
+  
+  return res.json({
+    success: true,
+    data: missingClauses
+  });
+}));
+
+/**
+ * Assess compliance with Indian law
+ * @route POST /api/analysis/contracts/:contractId/compliance
+ */
+router.post("/contracts/:contractId/compliance", authenticate(), asyncHandler(async (req: Request, res: Response) => {
+  if (!req.user) {
+    throw ApiError.unauthorized('Authentication required');
+  }
+  
+  const contractId = parseInt(req.params.contractId);
+  const { specificLaws } = req.body;
+  
+  if (isNaN(contractId)) {
+    throw ApiError.badRequest('Invalid contract ID');
+  }
+  
+  logger.info(`Assessing legal compliance for contract: ${contractId}`);
+  
+  const compliance = await aiAnalysisService.assessComplianceWithIndianLaw(contractId, req.user.id, specificLaws);
+  
+  return res.json({
+    success: true,
+    data: compliance
   });
 }));
 

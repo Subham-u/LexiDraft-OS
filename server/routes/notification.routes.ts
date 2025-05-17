@@ -6,12 +6,13 @@ import { asyncHandler, ApiError } from '../middleware/error';
 import { authenticate } from '../middleware/auth';
 import { createLogger } from '../utils/logger';
 import * as notificationService from '../services/notification.service';
+import { z } from 'zod';
 
 const router: Router = express.Router();
 const logger = createLogger('notification-routes');
 
 /**
- * Get all notifications for the authenticated user
+ * Get all notifications for authenticated user
  * @route GET /api/notifications
  */
 router.get("/", authenticate(), asyncHandler(async (req: Request, res: Response) => {
@@ -19,15 +20,18 @@ router.get("/", authenticate(), asyncHandler(async (req: Request, res: Response)
     throw ApiError.unauthorized('Authentication required');
   }
   
-  const { limit = 20, offset = 0, unreadOnly = false } = req.query;
+  // Parse query parameters
+  const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
+  const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
+  const unreadOnly = req.query.unreadOnly === 'true';
   
   logger.info(`Getting notifications for user: ${req.user.id}`);
   
   const notifications = await notificationService.getUserNotifications(
     req.user.id,
-    Number(limit),
-    Number(offset),
-    unreadOnly === 'true'
+    limit,
+    offset,
+    unreadOnly
   );
   
   return res.json({
@@ -37,7 +41,7 @@ router.get("/", authenticate(), asyncHandler(async (req: Request, res: Response)
 }));
 
 /**
- * Get unread notification count
+ * Get unread notification count for authenticated user
  * @route GET /api/notifications/unread/count
  */
 router.get("/unread/count", authenticate(), asyncHandler(async (req: Request, res: Response) => {
@@ -56,7 +60,7 @@ router.get("/unread/count", authenticate(), asyncHandler(async (req: Request, re
 }));
 
 /**
- * Mark notification as read
+ * Mark a notification as read
  * @route PATCH /api/notifications/:id/read
  */
 router.patch("/:id/read", authenticate(), asyncHandler(async (req: Request, res: Response) => {
@@ -72,7 +76,7 @@ router.patch("/:id/read", authenticate(), asyncHandler(async (req: Request, res:
   
   logger.info(`Marking notification ${notificationId} as read`);
   
-  // Check if notification belongs to user
+  // First check if the notification belongs to the user
   const notification = await notificationService.getNotificationById(notificationId);
   
   if (!notification) {
@@ -92,10 +96,10 @@ router.patch("/:id/read", authenticate(), asyncHandler(async (req: Request, res:
 }));
 
 /**
- * Mark all notifications as read
- * @route POST /api/notifications/read-all
+ * Mark all notifications as read for authenticated user
+ * @route PATCH /api/notifications/read-all
  */
-router.post("/read-all", authenticate(), asyncHandler(async (req: Request, res: Response) => {
+router.patch("/read-all", authenticate(), asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) {
     throw ApiError.unauthorized('Authentication required');
   }
@@ -111,7 +115,7 @@ router.post("/read-all", authenticate(), asyncHandler(async (req: Request, res: 
 }));
 
 /**
- * Delete notification
+ * Delete a notification
  * @route DELETE /api/notifications/:id
  */
 router.delete("/:id", authenticate(), asyncHandler(async (req: Request, res: Response) => {
@@ -127,14 +131,14 @@ router.delete("/:id", authenticate(), asyncHandler(async (req: Request, res: Res
   
   logger.info(`Deleting notification: ${notificationId}`);
   
-  // Check if notification belongs to user
+  // First check if the notification belongs to the user
   const notification = await notificationService.getNotificationById(notificationId);
   
   if (!notification) {
     throw ApiError.notFound('Notification not found');
   }
   
-  if (notification.userId !== req.user.id && req.user.role !== 'admin') {
+  if (notification.userId !== req.user.id) {
     throw ApiError.forbidden('You do not have permission to delete this notification');
   }
   
@@ -147,10 +151,10 @@ router.delete("/:id", authenticate(), asyncHandler(async (req: Request, res: Res
 }));
 
 /**
- * Delete all notifications
- * @route DELETE /api/notifications
+ * Delete all notifications for authenticated user
+ * @route DELETE /api/notifications/all
  */
-router.delete("/", authenticate(), asyncHandler(async (req: Request, res: Response) => {
+router.delete("/all", authenticate(), asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) {
     throw ApiError.unauthorized('Authentication required');
   }
