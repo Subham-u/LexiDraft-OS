@@ -104,10 +104,53 @@ app.use('/api', apiRoutes);
 
 // Development middleware
 if (process.env.NODE_ENV === 'development') {
-  // API Routes should go first
+  const path = require('path');
+  const fs = require('fs');
   
-  // For all non-API routes, we'll generate a minimal HTML page that
-  // acts as an entry point for the frontend app with properly configured paths
+  // Serve static files from the client folder
+  app.use('/client', (req, res, next) => {
+    const filePath = path.join(process.cwd(), req.path);
+    
+    try {
+      if (fs.existsSync(filePath)) {
+        const stat = fs.statSync(filePath);
+        
+        if (stat.isFile()) {
+          logger.info(`Serving static file: ${req.path}`);
+          
+          // Set the correct MIME type based on file extension
+          const ext = path.extname(filePath).toLowerCase();
+          const mimeTypes: Record<string, string> = {
+            '.html': 'text/html',
+            '.js': 'application/javascript',
+            '.jsx': 'application/javascript',
+            '.ts': 'application/javascript',
+            '.tsx': 'application/javascript',
+            '.css': 'text/css',
+            '.json': 'application/json',
+            '.png': 'image/png',
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.gif': 'image/gif',
+            '.svg': 'image/svg+xml',
+          };
+          
+          const contentType = mimeTypes[ext] || 'text/plain';
+          res.setHeader('Content-Type', contentType);
+          
+          const fileStream = fs.createReadStream(filePath);
+          fileStream.pipe(res);
+          return;
+        }
+      }
+    } catch (error) {
+      logger.error(`Error serving static file: ${error}`);
+    }
+    
+    next();
+  });
+  
+  // For all non-API routes, redirect to the Vite dev server
   app.use('*', (req, res, next) => {
     // Skip API and WebSocket routes
     if (req.originalUrl.startsWith('/api') || req.originalUrl.startsWith('/ws')) {
@@ -117,6 +160,7 @@ if (process.env.NODE_ENV === 'development') {
     logger.info(`Serving frontend for path: ${req.originalUrl}`);
     
     // For development, create a minimal HTML that bootstraps the React application
+    // and redirects to the Vite dev server
     res.send(`
       <!DOCTYPE html>
       <html lang="en">
@@ -169,7 +213,10 @@ if (process.env.NODE_ENV === 'development') {
               <div class="loading-text">Loading LexiDraft...</div>
             </div>
           </div>
-          <script type="module" src="/client/src/main.tsx"></script>
+          <script>
+            // Redirect to Vite dev server
+            window.location.href = 'http://localhost:5173' + window.location.pathname;
+          </script>
         </body>
       </html>
     `);
