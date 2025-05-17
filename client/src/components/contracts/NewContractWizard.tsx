@@ -306,6 +306,31 @@ export default function NewContractWizard({ isOpen, onClose }: { isOpen: boolean
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
+  // Contract creation mutation
+  const createContractMutation = useMutation({
+    mutationFn: async (contractData: any) => {
+      const response = await apiRequest('POST', '/api/contracts', contractData);
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setSavedContractId(data.data?.id || null);
+      queryClient.invalidateQueries({ queryKey: ['/api/contracts'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/contracts/recent'] });
+      toast({
+        title: "Contract created successfully!",
+        description: "Your contract has been saved to the database.",
+      });
+    },
+    onError: (error) => {
+      console.error("Error creating contract:", error);
+      toast({
+        title: "Failed to create contract",
+        description: "There was an error saving your contract. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+  
   // Mock user for development
   const user = { id: 1, fullName: 'Demo User' };
   
