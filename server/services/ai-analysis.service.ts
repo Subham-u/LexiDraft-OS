@@ -13,6 +13,33 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 
 /**
+ * Get an existing analysis for a contract if it exists
+ */
+export async function getExistingAnalysis(contractId: number, userId: number) {
+  try {
+    const analysis = await analysisService.getContractAnalysisByContractId(contractId);
+    
+    // If no analysis exists, or it doesn't belong to the user, return null
+    if (!analysis || analysis.userId !== userId) {
+      return null;
+    }
+    
+    return {
+      riskScore: analysis.riskScore || 50,
+      completeness: analysis.completeness || 70,
+      issues: analysis.issues?.length || 0,
+      strengths: analysis.strengths || [],
+      weaknesses: analysis.weaknesses || [],
+      recommendations: analysis.recommendations || [],
+      compliantWithIndianLaw: analysis.compliantWithIndianLaw || false
+    };
+  } catch (error) {
+    logger.error(`Error getting existing analysis: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    return null;
+  }
+}
+
+/**
  * Analyze a contract using AI
  */
 export async function analyzeContract(contractId: number, userId: number) {

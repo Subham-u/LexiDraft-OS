@@ -11,6 +11,15 @@ const logger = createLogger('api-routes');
 // Register routes
 logger.info('Registering API routes');
 
+// Register frontend adapter routes
+try {
+  const adapterRoutes = require('./adapter.routes').default;
+  router.use('/', adapterRoutes); // Mount at root level to match frontend expected paths
+  logger.info('Frontend adapter routes registered successfully');
+} catch (error) {
+  logger.error('Error loading adapter routes', error);
+}
+
 // Try to import and register core routes
 try {
   const authRoutes = require('./auth.routes').default;
