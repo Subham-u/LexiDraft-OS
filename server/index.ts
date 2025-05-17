@@ -98,6 +98,16 @@ app.get('/api/ws/status', (req: Request, res: Response) => {
 // Mount API routes
 app.use('/api', apiRoutes);
 
+// Serve the notification demo page
+app.get('/', (req: Request, res: Response) => {
+  res.redirect('/notification-demo');
+});
+
+// Serve the notification demo HTML
+app.get('/notification-demo', (req: Request, res: Response) => {
+  res.sendFile(path.join(process.cwd(), 'client/public/notification-demo.html'));
+});
+
 // Global error handler
 app.use(errorHandler);
 
