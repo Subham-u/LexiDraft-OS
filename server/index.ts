@@ -66,8 +66,12 @@ const server: Server = createServer(app);
 // Use the main Express app to mount service routes directly
 // This simplifies our architecture and avoids port conflicts
 
-// Import services and routes
+// Import routes and services
+import { registerRoutes } from './routes';
 import servicesModule from "./services";
+
+// Register API routes
+registerRoutes(app, server);
 
 // Setup the services using the main Express app
 servicesModule.setupServices(app, server)
