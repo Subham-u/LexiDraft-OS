@@ -34,10 +34,10 @@ function App() {
         {() => <Login />}
       </Route>
       
-      <Route path="*">
+      <Route path="/:rest*">
         {(params) => {
           // Skip the login route completely
-          if (params === 'login') return null;
+          if (params.rest === 'login') return null;
           
           return (
             <Layout>

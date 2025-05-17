@@ -102,18 +102,21 @@ import directApiRoutes from './api.routes';
 app.use(directApiRoutes);
 app.use('/api', apiRoutes);
 
-// Serve static files from the client/dist folder in development
+// Development middleware
 if (process.env.NODE_ENV === 'development') {
-  // Set up a fallback route to handle client-side routing
+  // API Routes should go first
+  
+  // For all non-API routes, we'll generate a minimal HTML page that
+  // acts as an entry point for the frontend app with properly configured paths
   app.use('*', (req, res, next) => {
+    // Skip API and WebSocket routes
     if (req.originalUrl.startsWith('/api') || req.originalUrl.startsWith('/ws')) {
       return next();
     }
     
-    // Fallback to index.html for client routes
     logger.info(`Serving frontend for path: ${req.originalUrl}`);
     
-    // For development, return a minimal HTML that points to the Vite dev server
+    // For development, create a minimal HTML that bootstraps the React application
     res.send(`
       <!DOCTYPE html>
       <html lang="en">
@@ -121,18 +124,51 @@ if (process.env.NODE_ENV === 'development') {
           <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>LexiDraft</title>
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+            }
+            
+            .loading-container {
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              height: 100vh;
+              background-color: #f8f9fa;
+            }
+            
+            .loading-spinner {
+              border: 5px solid #f3f3f3;
+              border-top: 5px solid #3498db;
+              border-radius: 50%;
+              width: 50px;
+              height: 50px;
+              animation: spin 1s linear infinite;
+            }
+            
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+            
+            .loading-text {
+              margin-top: 20px;
+              font-size: 18px;
+              color: #333;
+            }
+          </style>
         </head>
         <body>
-          <div id="root"></div>
-          <script type="module">
-            import RefreshRuntime from 'http://localhost:5173/@react-refresh'
-            RefreshRuntime.injectIntoGlobalHook(window)
-            window.$RefreshReg$ = () => {}
-            window.$RefreshSig$ = () => (type) => type
-            window.__vite_plugin_react_preamble_installed__ = true
-          </script>
-          <script type="module" src="http://localhost:5173/@vite/client"></script>
-          <script type="module" src="http://localhost:5173/src/main.tsx"></script>
+          <div id="root">
+            <div class="loading-container">
+              <div class="loading-spinner"></div>
+              <div class="loading-text">Loading LexiDraft...</div>
+            </div>
+          </div>
         </body>
       </html>
     `);
