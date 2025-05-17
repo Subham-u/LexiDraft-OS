@@ -1,225 +1,151 @@
-import React, { createContext, useContext, useState, useEffect } from 'react'
+"use client"
+
+import { createContext, useContext, useEffect, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/hooks/use-toast'
-import { formatRelativeTime } from '@/lib/utils'
+import { useAuth } from '@/lib/auth'
+import wsClient from '@/lib/websocket'
 
-type NotificationType = 'info' | 'success' | 'warning' | 'error'
-
-interface Notification {
+// Define notification types
+export interface Notification {
   id: number
+  userId: number
   title: string
   message: string
-  type: NotificationType
+  type: string
+  link?: string
+  isRead: boolean
   createdAt: string
-  read: boolean
-  actionUrl?: string
 }
 
-interface NotificationContext {
+// Notification context
+interface NotificationContextType {
   notifications: Notification[]
   unreadCount: number
   markAsRead: (id: number) => void
   markAllAsRead: () => void
-  fetchNotifications: () => void
 }
 
-const NotificationContext = createContext<NotificationContext>({
+const NotificationContext = createContext<NotificationContextType>({
   notifications: [],
   unreadCount: 0,
   markAsRead: () => {},
   markAllAsRead: () => {},
-  fetchNotifications: () => {}
 })
 
 export const useNotifications = () => useContext(NotificationContext)
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
-  const [notifications, setNotifications] = useState<Notification[]>([])
-  const [unreadCount, setUnreadCount] = useState(0)
-  const [socketConnected, setSocketConnected] = useState(false)
-  const [socket, setSocket] = useState<WebSocket | null>(null)
+  const { isAuthenticated } = useAuth()
   const { toast } = useToast()
-
-  // Check if user is logged in
-  const isLoggedIn = () => {
-    return typeof window !== 'undefined' && !!localStorage.getItem('lexidraft-auth-token')
-  }
-
-  // Connect to WebSocket
+  const queryClient = useQueryClient()
+  const [hasInitialized, setHasInitialized] = useState(false)
+  
+  // Fetch notifications
+  const { data: notificationsData } = useQuery<{
+    success: boolean
+    data: Notification[]
+    unreadCount: number
+  }>({
+    queryKey: ['/api/notifications'],
+    enabled: isAuthenticated && hasInitialized,
+    staleTime: 60000,  // 1 minute
+    refetchInterval: 300000, // 5 minutes
+  })
+  
+  // Get unread count
+  const { data: unreadCountData } = useQuery<{
+    success: boolean
+    data: { count: number }
+  }>({
+    queryKey: ['/api/notifications/unread'],
+    enabled: isAuthenticated && hasInitialized,
+    staleTime: 60000,  // 1 minute
+    refetchInterval: 60000, // 1 minute
+  })
+  
+  // Initialize websocket connection
   useEffect(() => {
-    if (!isLoggedIn()) return
-    
-    // Create WebSocket connection
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const wsUrl = `${protocol}//${window.location.host}/ws`
-    const newSocket = new WebSocket(wsUrl)
-    
-    newSocket.onopen = () => {
-      console.log('WebSocket connected')
-      setSocketConnected(true)
+    if (isAuthenticated) {
+      // Connect to WebSocket
+      wsClient.connect()
       
-      // Send authentication message
-      const authToken = localStorage.getItem('lexidraft-auth-token')
-      if (authToken) {
-        newSocket.send(JSON.stringify({
-          type: 'authenticate',
-          token: authToken
-        }))
+      // Set initialization flag
+      setHasInitialized(true)
+      
+      // Clean up on unmount
+      return () => {
+        wsClient.disconnect()
       }
     }
-    
-    newSocket.onclose = () => {
-      console.log('WebSocket disconnected')
-      setSocketConnected(false)
-    }
-    
-    newSocket.onerror = (error) => {
-      console.error('WebSocket error:', error)
-    }
-    
-    newSocket.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data)
-        
-        if (data.type === 'notification') {
-          // Handle new notification
-          const newNotification = data.notification
-          
-          // Show toast notification for immediate feedback
-          if (!newNotification.silent) {
-            toast({
-              title: newNotification.title,
-              description: newNotification.message,
-              variant: newNotification.type === 'error' ? 'destructive' : 'default'
-            })
-          }
-          
-          // Update notifications list
-          setNotifications(prev => [newNotification, ...prev])
-          setUnreadCount(count => count + 1)
-        }
-      } catch (error) {
-        console.error('Error parsing WebSocket message:', error)
-      }
-    }
-    
-    setSocket(newSocket)
-    
-    // Fetch initial notifications
-    fetchNotifications()
-    
-    // Clean up on unmount
-    return () => {
-      if (newSocket) {
-        newSocket.close()
-      }
-    }
-  }, [])
+  }, [isAuthenticated])
   
-  // Re-fetch notifications when login state changes
+  // Handle real-time notifications
   useEffect(() => {
-    window.addEventListener('storage', handleStorageChange)
-    return () => {
-      window.removeEventListener('storage', handleStorageChange)
-    }
-  }, [])
-  
-  const handleStorageChange = () => {
-    if (isLoggedIn()) {
-      fetchNotifications()
-    } else {
-      setNotifications([])
-      setUnreadCount(0)
-    }
-  }
-
-  // Fetch notifications from API
-  const fetchNotifications = async () => {
-    if (!isLoggedIn()) return
+    if (!isAuthenticated) return
     
-    try {
-      const authToken = localStorage.getItem('lexidraft-auth-token')
-      const response = await fetch('/api/notifications', {
-        headers: {
-          'Authorization': `Bearer ${authToken}`
-        }
+    // Register notification handler
+    const unsubscribe = wsClient.onNotification((notification) => {
+      // Show toast
+      toast({
+        title: notification.title,
+        description: notification.message,
+        variant: notification.type === 'error' ? 'destructive' : 'default',
       })
       
-      if (!response.ok) throw new Error('Failed to fetch notifications')
-      
-      const data = await response.json()
-      setNotifications(data.notifications || [])
-      setUnreadCount(data.unreadCount || 0)
-    } catch (error) {
-      console.error('Error fetching notifications:', error)
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/notifications'] })
+      queryClient.invalidateQueries({ queryKey: ['/api/notifications/unread'] })
+    })
+    
+    return () => {
+      unsubscribe()
     }
-  }
-
-  // Mark a notification as read
+  }, [isAuthenticated, queryClient, toast])
+  
+  // Mark notification as read
   const markAsRead = async (id: number) => {
-    if (!isLoggedIn()) return
-    
     try {
-      const authToken = localStorage.getItem('lexidraft-auth-token')
-      const response = await fetch(`/api/notifications/${id}/read`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${authToken}`,
-          'Content-Type': 'application/json'
-        }
+      await fetch(`/api/notifications/${id}/read`, {
+        method: 'PATCH',
       })
       
-      if (!response.ok) throw new Error('Failed to mark notification as read')
-      
-      // Update local state
-      setNotifications(prev => 
-        prev.map(notification => 
-          notification.id === id ? { ...notification, read: true } : notification
-        )
-      )
-      
-      setUnreadCount(count => Math.max(0, count - 1))
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/notifications'] })
+      queryClient.invalidateQueries({ queryKey: ['/api/notifications/unread'] })
     } catch (error) {
       console.error('Error marking notification as read:', error)
     }
   }
-
+  
   // Mark all notifications as read
   const markAllAsRead = async () => {
-    if (!isLoggedIn()) return
-    
     try {
-      const authToken = localStorage.getItem('lexidraft-auth-token')
-      const response = await fetch('/api/notifications/read-all', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${authToken}`,
-          'Content-Type': 'application/json'
-        }
+      await fetch('/api/notifications/read-all', {
+        method: 'PATCH',
       })
       
-      if (!response.ok) throw new Error('Failed to mark all notifications as read')
-      
-      // Update local state
-      setNotifications(prev => 
-        prev.map(notification => ({ ...notification, read: true }))
-      )
-      
-      setUnreadCount(0)
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/notifications'] })
+      queryClient.invalidateQueries({ queryKey: ['/api/notifications/unread'] })
     } catch (error) {
       console.error('Error marking all notifications as read:', error)
     }
   }
-
-  const value = {
-    notifications,
-    unreadCount,
-    markAsRead,
-    markAllAsRead,
-    fetchNotifications
-  }
-
+  
+  // Extract values from query results
+  const notifications = notificationsData?.data || []
+  const unreadCount = unreadCountData?.data?.count || 0
+  
   return (
-    <NotificationContext.Provider value={value}>
+    <NotificationContext.Provider 
+      value={{ 
+        notifications, 
+        unreadCount,
+        markAsRead,
+        markAllAsRead
+      }}
+    >
       {children}
     </NotificationContext.Provider>
   )

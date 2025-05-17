@@ -1,526 +1,568 @@
-import { useState } from 'react'
-import { 
-  User, 
-  Bell, 
-  Shield, 
-  CreditCard,
-  Briefcase,
-  Trash2
-} from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Separator } from '@/components/ui/separator'
-import { Switch } from '@/components/ui/switch'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { getInitials } from '@/lib/utils'
-import { useToast } from '@/hooks/use-toast'
+import DashboardLayout from "@/layouts/DashboardLayout";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function Settings() {
-  const [activeTab, setActiveTab] = useState('profile')
-  const { toast } = useToast()
+  const { toast } = useToast();
   
-  // Sample user data
-  const [user, setUser] = useState({
-    name: 'Rahul Sharma',
-    email: 'rahul@example.com',
-    company: 'LexiDraft Ltd',
-    phone: '+91 98765 43210',
-    avatarUrl: ''
-  })
+  // Create a mockup user if auth context is not available
+  // This handles development and testing scenarios
+  const defaultUser = {
+    id: 1,
+    uid: 'demo123',
+    username: 'demo_user',
+    email: 'demo@lexidraft.com',
+    fullName: 'Demo User',
+    role: 'user',
+    avatar: '/assets/images/avatar.png',
+    createdAt: new Date(),
+    updatedAt: new Date()
+  };
   
-  // Notification preferences
-  const [notifications, setNotifications] = useState({
+  let user = defaultUser;
+  let logout = () => {
+    toast({
+      title: "Logged out",
+      description: "You have been logged out successfully",
+    });
+  };
+  
+  // Try to use auth context if available
+  try {
+    const auth = useAuth();
+    if (auth && auth.user) {
+      user = auth.user;
+      logout = auth.logout;
+    }
+  } catch (error) {
+    console.log("Auth provider not available, using default user");
+  }
+  
+  const [profileForm, setProfileForm] = useState({
+    fullName: user?.fullName || "",
+    email: user?.email || "",
+    company: "",
+    role: "Legal Team"
+  });
+  
+  const [legalForm, setLegalForm] = useState({
+    panNumber: "",
+    gstNumber: "",
+    address: ""
+  });
+  
+  const [notificationSettings, setNotificationSettings] = useState({
+    emailNotifications: true,
     contractUpdates: true,
-    contractReminders: true,
-    paymentNotifications: true,
-    marketingEmails: false,
-    securityAlerts: true
-  })
+    clientMessages: true,
+    aiSuggestions: true,
+    marketplaceUpdates: false
+  });
   
-  // Handle profile form submission
-  const handleProfileSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    toast({
-      title: 'Profile updated',
-      description: 'Your profile information has been updated successfully.'
-    })
-  }
+  const [aiSettings, setAiSettings] = useState({
+    autoSuggestions: true,
+    dataCollection: true,
+    simplifiedLanguage: false
+  });
   
-  // Handle notification toggle
-  const handleNotificationToggle = (key: keyof typeof notifications) => {
-    setNotifications(prev => ({
-      ...prev,
-      [key]: !prev[key]
-    }))
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setProfileForm(prev => ({ ...prev, [name]: value }));
+  };
+  
+  const handleLegalChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setLegalForm(prev => ({ ...prev, [name]: value }));
+  };
+  
+  const handleNotificationChange = (key: string, checked: boolean) => {
+    setNotificationSettings(prev => ({ ...prev, [key]: checked }));
+  };
+  
+  const handleAISettingChange = (key: string, checked: boolean) => {
+    setAiSettings(prev => ({ ...prev, [key]: checked }));
+  };
+  
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
     
-    toast({
-      title: 'Notification preferences updated',
-      description: 'Your notification settings have been saved.'
-    })
-  }
+    try {
+      // Call API to save profile settings
+      await apiRequest("PATCH", "/api/user/profile", profileForm);
+      
+      toast({
+        title: "Profile updated",
+        description: "Your profile information has been updated successfully"
+      });
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      toast({
+        title: "Update failed",
+        description: "There was an error updating your profile. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
+  const handleSaveLegal = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    
+    try {
+      // Call API to save legal settings
+      await apiRequest("PATCH", "/api/user/legal", legalForm);
+      
+      toast({
+        title: "Legal information updated",
+        description: "Your legal information has been updated successfully"
+      });
+    } catch (error) {
+      console.error("Error updating legal information:", error);
+      toast({
+        title: "Update failed",
+        description: "There was an error updating your legal information. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
+  const handleSaveNotifications = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    
+    try {
+      // Call API to save notification settings
+      await apiRequest("PATCH", "/api/user/notifications", notificationSettings);
+      
+      toast({
+        title: "Notification settings updated",
+        description: "Your notification preferences have been updated successfully"
+      });
+    } catch (error) {
+      console.error("Error updating notification settings:", error);
+      toast({
+        title: "Update failed",
+        description: "There was an error updating your notification settings. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
+  const handleSaveAISettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    
+    try {
+      // Call API to save AI settings
+      await apiRequest("PATCH", "/api/user/ai-settings", aiSettings);
+      
+      toast({
+        title: "AI settings updated",
+        description: "Your AI preferences have been updated successfully"
+      });
+    } catch (error) {
+      console.error("Error updating AI settings:", error);
+      toast({
+        title: "Update failed",
+        description: "There was an error updating your AI settings. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
-    <div className="container py-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl font-bold">Settings</h1>
-          <p className="text-muted-foreground mt-1">Manage your account preferences and settings</p>
-        </div>
-      </div>
-      
-      <div className="flex flex-col lg:flex-row gap-8">
-        {/* Sidebar */}
-        <div className="lg:w-1/4">
-          <Tabs 
-            defaultValue="profile" 
-            orientation="vertical" 
-            onValueChange={setActiveTab} 
-            className="w-full"
-          >
-            <TabsList className="flex flex-col h-auto justify-start bg-transparent space-y-1">
-              <TabsTrigger 
-                value="profile" 
-                className="justify-start px-4 w-full data-[state=active]:bg-muted"
-              >
-                <User className="h-5 w-5 mr-2" />
-                Profile
-              </TabsTrigger>
-              <TabsTrigger 
-                value="notifications" 
-                className="justify-start px-4 w-full data-[state=active]:bg-muted"
-              >
-                <Bell className="h-5 w-5 mr-2" />
-                Notifications
-              </TabsTrigger>
-              <TabsTrigger 
-                value="security" 
-                className="justify-start px-4 w-full data-[state=active]:bg-muted"
-              >
-                <Shield className="h-5 w-5 mr-2" />
-                Security
-              </TabsTrigger>
-              <TabsTrigger 
-                value="billing" 
-                className="justify-start px-4 w-full data-[state=active]:bg-muted"
-              >
-                <CreditCard className="h-5 w-5 mr-2" />
-                Billing
-              </TabsTrigger>
-              <TabsTrigger 
-                value="team" 
-                className="justify-start px-4 w-full data-[state=active]:bg-muted"
-              >
-                <Briefcase className="h-5 w-5 mr-2" />
-                Team
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+    <DashboardLayout>
+      <div className="px-4 py-6 sm:px-6 md:px-8">
+        <div className="mb-8">
+          <h1 className="font-urbanist text-2xl font-bold text-gray-900">Settings</h1>
+          <p className="mt-1 text-sm text-gray-600">Manage your account settings and preferences</p>
         </div>
         
-        {/* Content area */}
-        <div className="flex-1">
-          <TabsContent value="profile" className={activeTab === 'profile' ? 'block' : 'hidden'}>
+        <Tabs defaultValue="profile" className="mb-8">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="profile">Profile</TabsTrigger>
+            <TabsTrigger value="legal">Legal Identity</TabsTrigger>
+            <TabsTrigger value="notifications">Notifications</TabsTrigger>
+            <TabsTrigger value="ai">AI Preferences</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="profile" className="mt-6">
             <Card>
               <CardHeader>
                 <CardTitle>Profile Information</CardTitle>
-                <CardDescription>
-                  Update your account details and personal information
-                </CardDescription>
+                <CardDescription>Update your personal and professional details</CardDescription>
               </CardHeader>
-              <form onSubmit={handleProfileSubmit}>
-                <CardContent className="space-y-6">
-                  {/* Profile picture */}
-                  <div className="flex flex-col sm:flex-row items-center gap-4">
-                    <Avatar className="h-20 w-20">
-                      <AvatarImage src={user.avatarUrl} />
-                      <AvatarFallback className="text-lg">
-                        {getInitials(user.name)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex flex-col sm:flex-row sm:items-end gap-2">
-                      <Button variant="outline" size="sm" type="button">
-                        Change Avatar
-                      </Button>
-                      <Button variant="outline" size="sm" type="button" className="text-destructive border-destructive/30 hover:bg-destructive/10">
-                        Remove
-                      </Button>
+              <CardContent>
+                <form onSubmit={handleSaveProfile} className="space-y-4">
+                  <div className="flex items-center gap-4">
+                    <div className="relative h-20 w-20">
+                      <img 
+                        src={user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(profileForm.fullName)}&background=7F56D9&color=fff`} 
+                        alt="Profile" 
+                        className="h-20 w-20 rounded-full object-cover" 
+                      />
+                      <button 
+                        type="button"
+                        className="absolute bottom-0 right-0 flex h-6 w-6 items-center justify-center rounded-full bg-primary-600 text-white hover:bg-primary-700"
+                      >
+                        <svg className="h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                      </button>
+                    </div>
+                    <div>
+                      <h3 className="font-urbanist text-lg font-semibold">{profileForm.fullName}</h3>
+                      <p className="text-sm text-gray-500">{profileForm.email}</p>
                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid gap-4 pt-4 md:grid-cols-2">
                     <div className="space-y-2">
-                      <Label htmlFor="name">Full Name</Label>
-                      <Input 
-                        id="name" 
-                        value={user.name} 
-                        onChange={e => setUser({...user, name: e.target.value})}
+                      <Label htmlFor="fullName">Full Name</Label>
+                      <Input
+                        id="fullName"
+                        name="fullName"
+                        value={profileForm.fullName}
+                        onChange={handleProfileChange}
                       />
                     </div>
-                    
                     <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
-                      <Input 
-                        id="email" 
-                        type="email" 
-                        value={user.email} 
-                        onChange={e => setUser({...user, email: e.target.value})}
+                      <Label htmlFor="email">Email Address</Label>
+                      <Input
+                        id="email"
+                        name="email"
+                        type="email"
+                        value={profileForm.email}
+                        onChange={handleProfileChange}
+                        disabled={!!user?.email}
                       />
                     </div>
-                    
                     <div className="space-y-2">
-                      <Label htmlFor="company">Company</Label>
-                      <Input 
-                        id="company" 
-                        value={user.company} 
-                        onChange={e => setUser({...user, company: e.target.value})}
+                      <Label htmlFor="company">Company (Optional)</Label>
+                      <Input
+                        id="company"
+                        name="company"
+                        value={profileForm.company}
+                        onChange={handleProfileChange}
                       />
                     </div>
-                    
                     <div className="space-y-2">
-                      <Label htmlFor="phone">Phone Number</Label>
-                      <Input 
-                        id="phone" 
-                        value={user.phone} 
-                        onChange={e => setUser({...user, phone: e.target.value})}
+                      <Label htmlFor="role">Role</Label>
+                      <Input
+                        id="role"
+                        name="role"
+                        value={profileForm.role}
+                        onChange={handleProfileChange}
                       />
                     </div>
                   </div>
-                </CardContent>
-                <CardFooter className="flex justify-between border-t pt-6">
-                  <Button type="button" variant="outline">Cancel</Button>
-                  <Button type="submit">Save Changes</Button>
-                </CardFooter>
-              </form>
+                  
+                  <div className="flex justify-end pt-4">
+                    <Button 
+                      type="submit" 
+                      className="bg-primary-600 hover:bg-primary-700"
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? "Saving..." : "Save Changes"}
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
             </Card>
           </TabsContent>
           
-          <TabsContent value="notifications" className={activeTab === 'notifications' ? 'block' : 'hidden'}>
+          <TabsContent value="legal" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Legal Identity</CardTitle>
+                <CardDescription>Add your legal identity details for contracts and billing</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSaveLegal} className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="panNumber">PAN Number</Label>
+                      <Input
+                        id="panNumber"
+                        name="panNumber"
+                        value={legalForm.panNumber}
+                        onChange={handleLegalChange}
+                        placeholder="ABCDE1234F"
+                      />
+                      <p className="text-xs text-gray-500">Personal Account Number for tax purposes</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="gstNumber">GST Number (Optional)</Label>
+                      <Input
+                        id="gstNumber"
+                        name="gstNumber"
+                        value={legalForm.gstNumber}
+                        onChange={handleLegalChange}
+                        placeholder="22AAAAA0000A1Z5"
+                      />
+                      <p className="text-xs text-gray-500">For business users only</p>
+                    </div>
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor="address">Legal Address</Label>
+                      <Input
+                        id="address"
+                        name="address"
+                        value={legalForm.address}
+                        onChange={handleLegalChange}
+                        placeholder="Enter your legal address"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                    <div className="flex items-start">
+                      <svg className="mt-0.5 mr-3 h-5 w-5 text-amber-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-900">Why we need this information</h4>
+                        <p className="mt-1 text-sm text-gray-600">
+                          Your legal identity details are used only for contract generation purposes and tax compliance. 
+                          This information will never be shared with third parties except as required by law.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-end pt-4">
+                    <Button 
+                      type="submit" 
+                      className="bg-primary-600 hover:bg-primary-700"
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? "Saving..." : "Save Changes"}
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="notifications" className="mt-6">
             <Card>
               <CardHeader>
                 <CardTitle>Notification Preferences</CardTitle>
-                <CardDescription>
-                  Control how and when you want to be notified
-                </CardDescription>
+                <CardDescription>Control how and when LexiDraft notifies you</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <h3 className="text-sm font-medium">Email Notifications</h3>
-                  
+              <CardContent>
+                <form onSubmit={handleSaveNotifications} className="space-y-6">
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="contractUpdates">Contract Updates</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Receive notifications about changes to your contracts
-                        </p>
+                      <div>
+                        <Label className="text-base">Email Notifications</Label>
+                        <p className="text-sm text-gray-500">Receive email notifications</p>
                       </div>
                       <Switch 
-                        id="contractUpdates" 
-                        checked={notifications.contractUpdates}
-                        onCheckedChange={() => handleNotificationToggle('contractUpdates')}
+                        checked={notificationSettings.emailNotifications}
+                        onCheckedChange={(checked) => handleNotificationChange("emailNotifications", checked)}
                       />
                     </div>
                     
-                    <Separator />
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="contractReminders">Deadline Reminders</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Get reminders about upcoming contract deadlines
-                        </p>
+                    <div className="ml-6 space-y-4 border-l border-gray-200 pl-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label className="text-sm">Contract Updates</Label>
+                          <p className="text-xs text-gray-500">When contracts are signed, commented, or modified</p>
+                        </div>
+                        <Switch 
+                          checked={notificationSettings.contractUpdates}
+                          onCheckedChange={(checked) => handleNotificationChange("contractUpdates", checked)}
+                          disabled={!notificationSettings.emailNotifications}
+                        />
                       </div>
-                      <Switch 
-                        id="contractReminders" 
-                        checked={notifications.contractReminders}
-                        onCheckedChange={() => handleNotificationToggle('contractReminders')}
-                      />
-                    </div>
-                    
-                    <Separator />
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="paymentNotifications">Payment Notifications</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Receive notifications about billing and payments
-                        </p>
+                      
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label className="text-sm">Client Messages</Label>
+                          <p className="text-xs text-gray-500">When clients send you messages</p>
+                        </div>
+                        <Switch 
+                          checked={notificationSettings.clientMessages}
+                          onCheckedChange={(checked) => handleNotificationChange("clientMessages", checked)}
+                          disabled={!notificationSettings.emailNotifications}
+                        />
                       </div>
-                      <Switch 
-                        id="paymentNotifications" 
-                        checked={notifications.paymentNotifications}
-                        onCheckedChange={() => handleNotificationToggle('paymentNotifications')}
-                      />
-                    </div>
-                    
-                    <Separator />
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="marketingEmails">Marketing Communications</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Receive product updates, tips, and special offers
-                        </p>
+                      
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label className="text-sm">AI Suggestions</Label>
+                          <p className="text-xs text-gray-500">When Lexi AI has suggestions for your contracts</p>
+                        </div>
+                        <Switch 
+                          checked={notificationSettings.aiSuggestions}
+                          onCheckedChange={(checked) => handleNotificationChange("aiSuggestions", checked)}
+                          disabled={!notificationSettings.emailNotifications}
+                        />
                       </div>
-                      <Switch 
-                        id="marketingEmails" 
-                        checked={notifications.marketingEmails}
-                        onCheckedChange={() => handleNotificationToggle('marketingEmails')}
-                      />
-                    </div>
-                    
-                    <Separator />
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="securityAlerts">Security Alerts</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Get notified about important security events
-                        </p>
+                      
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label className="text-sm">Marketplace Updates</Label>
+                          <p className="text-xs text-gray-500">New lawyers and special offers in the marketplace</p>
+                        </div>
+                        <Switch 
+                          checked={notificationSettings.marketplaceUpdates}
+                          onCheckedChange={(checked) => handleNotificationChange("marketplaceUpdates", checked)}
+                          disabled={!notificationSettings.emailNotifications}
+                        />
                       </div>
-                      <Switch 
-                        id="securityAlerts" 
-                        checked={notifications.securityAlerts}
-                        onCheckedChange={() => handleNotificationToggle('securityAlerts')}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-              <CardFooter className="border-t pt-6">
-                <Button 
-                  variant="outline" 
-                  onClick={() => {
-                    setNotifications({
-                      contractUpdates: true,
-                      contractReminders: true,
-                      paymentNotifications: true,
-                      marketingEmails: false,
-                      securityAlerts: true
-                    })
-                    
-                    toast({
-                      title: 'Default settings restored',
-                      description: 'Notification preferences have been reset to default.'
-                    })
-                  }}
-                >
-                  Reset to Defaults
-                </Button>
-              </CardFooter>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="security" className={activeTab === 'security' ? 'block' : 'hidden'}>
-            <Card>
-              <CardHeader>
-                <CardTitle>Security Settings</CardTitle>
-                <CardDescription>
-                  Manage your account security and privacy
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-8">
-                <div className="space-y-4">
-                  <h3 className="text-sm font-medium">Change Password</h3>
-                  <div className="grid gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="current-password">Current Password</Label>
-                      <Input id="current-password" type="password" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="new-password">New Password</Label>
-                      <Input id="new-password" type="password" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="confirm-password">Confirm New Password</Label>
-                      <Input id="confirm-password" type="password" />
-                    </div>
-                  </div>
-                  <Button className="mt-2">Update Password</Button>
-                </div>
-                
-                <Separator />
-                
-                <div className="space-y-4">
-                  <h3 className="text-sm font-medium">Two-Factor Authentication</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Add an extra layer of security to your account by enabling two-factor authentication.
-                  </p>
-                  <Button variant="outline">Enable 2FA</Button>
-                </div>
-                
-                <Separator />
-                
-                <div className="space-y-4">
-                  <h3 className="text-sm font-medium text-destructive">Danger Zone</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Permanently delete your account and all of your content.
-                  </p>
-                  <Button variant="destructive" className="gap-2">
-                    <Trash2 className="h-4 w-4" />
-                    Delete Account
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="billing" className={activeTab === 'billing' ? 'block' : 'hidden'}>
-            <Card>
-              <CardHeader>
-                <CardTitle>Billing and Subscription</CardTitle>
-                <CardDescription>
-                  Manage your subscription plan and payment methods
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <h3 className="text-sm font-medium">Current Plan</h3>
-                  <div className="bg-primary-50 p-4 rounded-lg">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="font-medium text-primary">Professional Plan</p>
-                        <p className="text-sm text-muted-foreground">Renews on June 15, 2025</p>
-                      </div>
-                      <Button variant="outline" size="sm">Change Plan</Button>
-                    </div>
-                  </div>
-                </div>
-                
-                <Separator />
-                
-                <div className="space-y-2">
-                  <h3 className="text-sm font-medium">Payment Methods</h3>
-                  <div className="bg-gray-50 p-4 rounded-lg flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                      <CreditCard className="h-5 w-5 text-gray-500" />
-                      <div>
-                        <p className="font-medium">•••• •••• •••• 4242</p>
-                        <p className="text-xs text-muted-foreground">Expires 05/2026</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button variant="ghost" size="sm">Edit</Button>
-                      <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">Remove</Button>
-                    </div>
-                  </div>
-                  <Button variant="outline" size="sm" className="mt-2">
-                    Add Payment Method
-                  </Button>
-                </div>
-                
-                <Separator />
-                
-                <div className="space-y-2">
-                  <h3 className="text-sm font-medium">Billing History</h3>
-                  <div className="border rounded-lg divide-y">
-                    <div className="p-4 flex justify-between items-center">
-                      <div>
-                        <p className="font-medium">Professional Plan - Monthly</p>
-                        <p className="text-xs text-muted-foreground">May 15, 2025</p>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <p className="font-medium">₹2,999.00</p>
-                        <Button variant="outline" size="sm">Receipt</Button>
-                      </div>
-                    </div>
-                    <div className="p-4 flex justify-between items-center">
-                      <div>
-                        <p className="font-medium">Professional Plan - Monthly</p>
-                        <p className="text-xs text-muted-foreground">Apr 15, 2025</p>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <p className="font-medium">₹2,999.00</p>
-                        <Button variant="outline" size="sm">Receipt</Button>
-                      </div>
-                    </div>
-                    <div className="p-4 flex justify-between items-center">
-                      <div>
-                        <p className="font-medium">Professional Plan - Monthly</p>
-                        <p className="text-xs text-muted-foreground">Mar 15, 2025</p>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <p className="font-medium">₹2,999.00</p>
-                        <Button variant="outline" size="sm">Receipt</Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="team" className={activeTab === 'team' ? 'block' : 'hidden'}>
-            <Card>
-              <CardHeader>
-                <CardTitle>Team Management</CardTitle>
-                <CardDescription>
-                  Invite team members and manage their permissions
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-sm font-medium">Team Members</h3>
-                  <Button size="sm">Invite Users</Button>
-                </div>
-                
-                <div className="border rounded-lg divide-y">
-                  <div className="p-4 flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback>RS</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-medium">Rahul Sharma</p>
-                        <p className="text-xs text-muted-foreground">rahul@example.com</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge>Owner</Badge>
                     </div>
                   </div>
                   
-                  <div className="p-4 flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback>PP</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-medium">Priya Patel</p>
-                        <p className="text-xs text-muted-foreground">priya@example.com</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline">Admin</Badge>
-                      <Button variant="ghost" size="sm">Manage</Button>
-                    </div>
+                  <div className="flex justify-end pt-4">
+                    <Button 
+                      type="submit" 
+                      className="bg-primary-600 hover:bg-primary-700"
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? "Saving..." : "Save Changes"}
+                    </Button>
                   </div>
-                  
-                  <div className="p-4 flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback>AK</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-medium">Anil Kumar</p>
-                        <p className="text-xs text-muted-foreground">anil@example.com</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline">Member</Badge>
-                      <Button variant="ghost" size="sm">Manage</Button>
-                    </div>
-                  </div>
-                </div>
+                </form>
               </CardContent>
             </Card>
           </TabsContent>
-        </div>
+          
+          <TabsContent value="ai" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>AI Preferences</CardTitle>
+                <CardDescription>Customize how Lexi AI interacts with you</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSaveAISettings} className="space-y-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label className="text-base">Auto-suggestions</Label>
+                        <p className="text-sm text-gray-500">Automatically suggest improvements to contracts</p>
+                      </div>
+                      <Switch 
+                        checked={aiSettings.autoSuggestions}
+                        onCheckedChange={(checked) => handleAISettingChange("autoSuggestions", checked)}
+                      />
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label className="text-base">AI Data Collection</Label>
+                        <p className="text-sm text-gray-500">Allow Lexi to learn from your usage (anonymized data only)</p>
+                      </div>
+                      <Switch 
+                        checked={aiSettings.dataCollection}
+                        onCheckedChange={(checked) => handleAISettingChange("dataCollection", checked)}
+                      />
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label className="text-base">Simplified Language</Label>
+                        <p className="text-sm text-gray-500">Lexi will explain legal terms in simple language</p>
+                      </div>
+                      <Switch 
+                        checked={aiSettings.simplifiedLanguage}
+                        onCheckedChange={(checked) => handleAISettingChange("simplifiedLanguage", checked)}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                    <div className="flex items-start">
+                      <svg className="mt-0.5 mr-3 h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-900">About AI data collection</h4>
+                        <p className="mt-1 text-sm text-gray-600">
+                          When enabled, Lexi AI learns from your interactions to provide better suggestions.
+                          Your personal information and contract details are never stored or shared.
+                          Disabling this may reduce the quality of AI suggestions over time.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-end pt-4">
+                    <Button 
+                      type="submit" 
+                      className="bg-primary-600 hover:bg-primary-700"
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? "Saving..." : "Save Changes"}
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+        
+        <Card className="border border-red-200 bg-red-50">
+          <CardHeader>
+            <CardTitle className="text-red-600">Danger Zone</CardTitle>
+            <CardDescription className="text-red-500">Actions that cannot be undone</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-semibold text-gray-900">Log out from all devices</h3>
+                <p className="text-sm text-gray-600">This will sign you out from all devices except the current one</p>
+              </div>
+              <Button variant="outline" className="border-red-600 text-red-600 hover:bg-red-50 hover:text-red-700">
+                Log Out All
+              </Button>
+            </div>
+            
+            <div className="mt-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-semibold text-gray-900">Log out</h3>
+                <p className="text-sm text-gray-600">Sign out from your account on this device</p>
+              </div>
+              <Button 
+                variant="outline" 
+                className="border-red-600 text-red-600 hover:bg-red-50 hover:text-red-700"
+                onClick={logout}
+              >
+                Log Out
+              </Button>
+            </div>
+            
+            <div className="mt-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-semibold text-gray-900">Delete Account</h3>
+                <p className="text-sm text-gray-600">Permanently delete your account and all associated data</p>
+              </div>
+              <Button variant="destructive">
+                Delete Account
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
-    </div>
-  )
+    </DashboardLayout>
+  );
 }

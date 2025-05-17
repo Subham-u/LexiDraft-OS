@@ -1,163 +1,213 @@
-import WebSocket, { WebSocketServer } from 'ws';
+/**
+ * WebSocket service for real-time features
+ */
+import { WebSocketServer, WebSocket } from 'ws';
 import { Server } from 'http';
-import jwt from 'jsonwebtoken';
-import { db } from '../db';
-import { notifications } from '../../shared/schema';
-import { eq } from 'drizzle-orm';
+import { verify } from 'jsonwebtoken';
+import { createLogger } from '../utils/logger';
 
+const logger = createLogger('websocket-service');
+
+// Store active connections
+const connections: Map<number, WebSocket[]> = new Map();
 const JWT_SECRET = process.env.JWT_SECRET || 'lexidraft-secret-key';
 
-// Connected clients map
-interface ConnectedClient {
-  ws: WebSocket;
-  userId: number;
-  authenticated: boolean;
-}
-
-const clients: Map<WebSocket, ConnectedClient> = new Map();
-
-export function setupWebSocketServer(server: Server) {
+/**
+ * Initialize WebSocket server
+ */
+export function initializeWebSocketServer(server: Server) {
   const wss = new WebSocketServer({ server, path: '/ws' });
-
+  
   wss.on('connection', (ws) => {
-    console.log('New WebSocket connection established');
+    let userId: number | null = null;
     
-    // Add to clients map as unauthenticated initially
-    clients.set(ws, { ws, userId: 0, authenticated: false });
-
-    // Handle messages from clients
-    ws.on('message', async (message) => {
+    ws.on('message', (message: string) => {
       try {
-        const data = JSON.parse(message.toString());
+        const data = JSON.parse(message);
         
-        if (data.type === 'authenticate') {
-          // Authenticate the connection
-          handleAuthentication(ws, data.token);
-        } else if (data.type === 'ping') {
-          // Simple ping/pong for connection health checks
-          ws.send(JSON.stringify({ type: 'pong' }));
+        // Handle authentication
+        if (data.type === 'auth') {
+          try {
+            const decoded = verify(data.token, JWT_SECRET) as { id: number };
+            userId = decoded.id;
+            
+            // Store connection by user ID
+            if (!connections.has(userId)) {
+              connections.set(userId, []);
+            }
+            connections.get(userId)?.push(ws);
+            
+            // Send confirmation
+            ws.send(JSON.stringify({
+              type: 'auth_success',
+              message: 'Authentication successful'
+            }));
+            
+            logger.info(`User ${userId} connected to WebSocket`);
+          } catch (error) {
+            ws.send(JSON.stringify({
+              type: 'auth_error',
+              message: 'Authentication failed'
+            }));
+            
+            logger.warn('WebSocket authentication failed', error);
+          }
         }
-        // Add other message types as needed
       } catch (error) {
-        console.error('Error processing WebSocket message:', error);
+        logger.error('Error processing WebSocket message', error);
       }
     });
-
-    // Handle disconnection
+    
     ws.on('close', () => {
-      console.log('WebSocket connection closed');
-      clients.delete(ws);
+      if (userId) {
+        // Remove connection from user's connections
+        const userConnections = connections.get(userId);
+        if (userConnections) {
+          const index = userConnections.indexOf(ws);
+          if (index !== -1) {
+            userConnections.splice(index, 1);
+          }
+          
+          // If no more connections for user, remove from map
+          if (userConnections.length === 0) {
+            connections.delete(userId);
+          }
+        }
+        
+        logger.info(`User ${userId} disconnected from WebSocket`);
+      }
     });
-
-    // Send welcome message
+    
+    // Send initial connection confirmation
     ws.send(JSON.stringify({
-      type: 'info',
-      message: 'Connected to LexiDraft WebSocket server. Please authenticate.'
+      type: 'connected',
+      message: 'Connected to LexiDraft WebSocket server'
     }));
   });
-
+  
+  logger.info('WebSocket server initialized');
+  
   return wss;
 }
 
-// Authenticate a WebSocket connection
-function handleAuthentication(ws: WebSocket, token: string) {
-  try {
-    // Verify the JWT token
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: number };
-    
-    // Update client record with authenticated status
-    const client = clients.get(ws);
-    if (client) {
-      client.authenticated = true;
-      client.userId = decoded.userId;
-      clients.set(ws, client);
-      
-      // Send success message
-      ws.send(JSON.stringify({
-        type: 'auth_success',
-        userId: decoded.userId
-      }));
-      
-      console.log(`User ${decoded.userId} authenticated via WebSocket`);
-    }
-  } catch (error) {
-    console.error('Authentication error:', error);
-    
-    // Send auth failure message
-    ws.send(JSON.stringify({
-      type: 'auth_error',
-      message: 'Authentication failed'
-    }));
-  }
-}
-
-// Send notification to a specific user
-export async function sendNotificationToUser(userId: number, notification: any) {
-  // Store notification in database
-  try {
-    await db.insert(notifications).values({
-      userId,
-      title: notification.title,
-      message: notification.message,
-      type: notification.type || 'info',
-      read: false,
-      actionUrl: notification.actionUrl,
+/**
+ * Send notification to specific user
+ */
+export function sendUserNotification(userId: number, data: any) {
+  const userConnections = connections.get(userId);
+  
+  if (userConnections && userConnections.length > 0) {
+    const message = JSON.stringify({
+      type: 'notification',
+      data
     });
     
-    // Find all connections for this user and send notification
-    for (const [_, client] of clients.entries()) {
-      if (client.authenticated && client.userId === userId) {
-        if (client.ws.readyState === WebSocket.OPEN) {
-          client.ws.send(JSON.stringify({
-            type: 'notification',
-            notification
-          }));
-        }
+    userConnections.forEach(ws => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(message);
       }
-    }
-  } catch (error) {
-    console.error('Error sending notification:', error);
+    });
+    
+    logger.info(`Notification sent to user ${userId}`);
+    return true;
   }
+  
+  logger.info(`User ${userId} not connected to WebSocket`);
+  return false;
 }
 
-// Send notification to all authenticated users
-export async function broadcastNotification(notification: any) {
-  for (const [_, client] of clients.entries()) {
-    if (client.authenticated && client.ws.readyState === WebSocket.OPEN) {
-      client.ws.send(JSON.stringify({
-        type: 'notification',
-        notification
-      }));
-    }
+/**
+ * Send chat message to specific user
+ */
+export function sendChatMessage(userId: number, data: any) {
+  const userConnections = connections.get(userId);
+  
+  if (userConnections && userConnections.length > 0) {
+    const message = JSON.stringify({
+      type: 'chat_message',
+      data
+    });
+    
+    userConnections.forEach(ws => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(message);
+      }
+    });
+    
+    logger.info(`Chat message sent to user ${userId}`);
+    return true;
   }
+  
+  logger.info(`User ${userId} not connected to WebSocket`);
+  return false;
 }
 
-// Send a message to a specific user
-export function sendMessageToUser(userId: number, message: any) {
-  for (const [_, client] of clients.entries()) {
-    if (client.authenticated && client.userId === userId && client.ws.readyState === WebSocket.OPEN) {
-      client.ws.send(JSON.stringify(message));
-    }
+/**
+ * Send typing indicator to specific user
+ */
+export function sendTypingIndicator(userId: number, data: { roomId: number, userId: number, isTyping: boolean }) {
+  const userConnections = connections.get(userId);
+  
+  if (userConnections && userConnections.length > 0) {
+    const message = JSON.stringify({
+      type: 'typing_indicator',
+      data
+    });
+    
+    userConnections.forEach(ws => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(message);
+      }
+    });
+    
+    return true;
   }
+  
+  return false;
 }
 
-// Get connected user count
-export function getConnectedUserCount(): number {
+/**
+ * Broadcast message to all connected clients
+ */
+export function broadcastMessage(data: any) {
+  const message = JSON.stringify({
+    type: 'broadcast',
+    data
+  });
+  
+  connections.forEach((userConnections) => {
+    userConnections.forEach((ws: WebSocket) => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(message);
+      }
+    });
+  });
+  
+  logger.info('Broadcast message sent to all users');
+}
+
+/**
+ * Get connection status for a user
+ */
+export function isUserConnected(userId: number): boolean {
+  const userConnections = connections.get(userId);
+  return !!(userConnections && userConnections.length > 0);
+}
+
+/**
+ * Get total number of connected clients
+ */
+export function getConnectionCount(): number {
   let count = 0;
-  for (const [_, client] of clients.entries()) {
-    if (client.authenticated) {
-      count++;
-    }
-  }
+  connections.forEach((userConnections) => {
+    count += userConnections.length;
+  });
   return count;
 }
 
-// Check if a user is connected
-export function isUserConnected(userId: number): boolean {
-  for (const [_, client] of clients.entries()) {
-    if (client.authenticated && client.userId === userId) {
-      return true;
-    }
-  }
-  return false;
+/**
+ * Get number of unique connected users
+ */
+export function getUniqueUserCount(): number {
+  return connections.size;
 }
