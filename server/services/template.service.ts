@@ -71,15 +71,14 @@ export async function getTemplateById(id: number): Promise<Template | null> {
 /**
  * Create a new template
  */
-export async function createTemplate(templateData: any): Promise<Template> {
+export async function createTemplate(templateData: InsertTemplate): Promise<Template> {
   try {
+    // Filter out any timestamp properties as they're handled automatically by PostgreSQL
+    const { createdAt, updatedAt, ...filteredData } = templateData as any;
+    
     const [newTemplate] = await db
       .insert(templates)
-      .values({
-        ...templateData,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      })
+      .values(filteredData)
       .returning();
     
     logger.info(`Template created with ID: ${newTemplate.id}`);

@@ -8,6 +8,7 @@ import { users } from '../../shared/schema';
 import { createLogger } from '../utils/logger';
 import { ApiError } from './error';
 import { eq } from 'drizzle-orm';
+import * as jwtService from '../services/jwt.service';
 
 const logger = createLogger('auth-middleware');
 
@@ -57,32 +58,78 @@ export const authenticate = (required: boolean = true) => {
         }
       }
       
-      // Verify the token with Firebase
-      const decodedToken = await getAuth().verifyIdToken(token);
-      const uid = decodedToken.uid;
-      
-      // Find the user in our database
-      const [user] = await db.select()
-        .from(users)
-        .where(eq(users.uid, uid));
-      
-      if (!user && required) {
-        throw ApiError.unauthorized('User not found');
+      // First, try to verify the token as a JWT token
+      try {
+        // Attempt to verify as our own JWT token
+        const payload = jwtService.verifyToken(token);
+        
+        // If verified successfully, find the user in our database
+        if (payload.type === 'access') {
+          const [user] = await db.select()
+            .from(users)
+            .where(eq(users.id, payload.userId));
+          
+          if (!user && required) {
+            throw ApiError.unauthorized('User not found');
+          }
+          
+          // Attach the user and token to the request
+          if (user) {
+            req.user = {
+              id: user.id,
+              uid: user.uid,
+              email: user.email,
+              role: user.role || 'user',
+              username: user.username,
+              fullName: user.fullName
+            };
+            
+            req.token = token;
+            return next();
+          }
+        } else {
+          throw ApiError.unauthorized('Invalid token type');
+        }
+      } catch (jwtError) {
+        // If JWT validation fails, try Firebase token validation
+        logger.info('JWT validation failed, trying Firebase token', { jwtError });
+        
+        // Verify the token with Firebase
+        const decodedToken = await getAuth().verifyIdToken(token);
+        const uid = decodedToken.uid;
+        
+        // Find the user in our database
+        const [user] = await db.select()
+          .from(users)
+          .where(eq(users.uid, uid));
+        
+        if (!user && required) {
+          throw ApiError.unauthorized('User not found');
+        }
+        
+        // Attach the user and token to the request
+        if (user) {
+          req.user = {
+            id: user.id,
+            uid: user.uid,
+            email: user.email,
+            role: user.role || 'user',
+            username: user.username,
+            fullName: user.fullName
+          };
+          
+          // Generate JWT tokens for future requests
+          const tokens = jwtService.generateTokens(user.id, user.uid, user.role || 'user');
+          
+          // Attach tokens to response headers
+          res.setHeader('X-Access-Token', tokens.accessToken);
+          res.setHeader('X-Refresh-Token', tokens.refreshToken);
+          
+          req.token = token;
+          return next();
+        }
       }
       
-      // Attach the user and token to the request
-      if (user) {
-        req.user = {
-          id: user.id,
-          uid: user.uid,
-          email: user.email,
-          role: user.role || 'user',
-          username: user.username,
-          fullName: user.fullName
-        };
-      }
-      
-      req.token = token;
       next();
     } catch (error) {
       logger.error('Authentication error', { error });

@@ -58,13 +58,12 @@ export async function getContractById(id: number): Promise<Contract | null> {
  */
 export async function createContract(contractData: InsertContract): Promise<Contract> {
   try {
+    // Filter out any timestamp properties as they're handled automatically by PostgreSQL
+    const { createdAt, updatedAt, ...filteredData } = contractData as any;
+    
     const [newContract] = await db
       .insert(contracts)
-      .values({
-        ...contractData,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      })
+      .values(filteredData)
       .returning();
     
     logger.info(`Contract created with ID: ${newContract.id}`);
@@ -86,13 +85,13 @@ export async function updateContract(id: number, contractData: Partial<InsertCon
       throw ApiError.notFound('Contract not found');
     }
     
+    // Filter out any timestamp properties
+    const { createdAt, updatedAt, ...filteredData } = contractData as any;
+    
     // Update contract
     const [updatedContract] = await db
       .update(contracts)
-      .set({
-        ...contractData,
-        updatedAt: new Date()
-      })
+      .set(filteredData)
       .where(eq(contracts.id, id))
       .returning();
     

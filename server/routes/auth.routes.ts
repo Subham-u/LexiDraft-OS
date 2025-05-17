@@ -21,9 +21,19 @@ router.post("/register", asyncHandler(async (req: Request, res: Response) => {
   
   const user = await authService.registerUser(userData);
   
+  // Generate JWT tokens for the user
+  const tokens = await import('../services/jwt.service').then(jwtService => 
+    jwtService.generateTokens(user.id, user.uid, user.role || 'user')
+  );
+  
+  // Set tokens in response headers
+  res.setHeader('X-Access-Token', tokens.accessToken);
+  res.setHeader('X-Refresh-Token', tokens.refreshToken);
+  
   return res.status(201).json({
     success: true,
-    data: user
+    data: user,
+    tokens
   });
 }));
 
