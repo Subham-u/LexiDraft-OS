@@ -1,114 +1,144 @@
+/**
+ * Authentication middleware for LexiDraft services
+ */
 import { Request, Response, NextFunction } from 'express';
-import { AUTH_CONFIG, IS_PRODUCTION } from '../config';
-import { storage } from '../../storage'; // For now, still using the existing storage
+import { storage } from '../../storage';
+import { createLogger } from '../utils/logger';
 
-/**
- * Authentication middleware
- * Verifies the authentication token and attaches user information to the request
- */
-export async function authenticate(req: Request, res: Response, next: NextFunction) {
-  try {
-    // Extract token from Authorization header
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({
-        success: false,
-        error: 'Authentication required',
-        message: 'Please provide a valid authentication token'
-      });
-    }
+const logger = createLogger('auth-middleware');
 
-    const token = authHeader.split('Bearer ')[1];
-
-    // Validate token format
-    if (!token || token.length < 20) {
-      return res.status(401).json({
-        success: false,
-        error: 'Invalid token format',
-        message: 'Authentication token is malformed or missing'
-      });
-    }
-
-    // In development, allow simplified authentication for testing
-    if (!IS_PRODUCTION) {
-      // For development only - set a mock user
-      req.user = { id: 1, role: 'user', uid: 'dev-uid-123' };
-      return next();
-    }
-
-    // In production, verify the token with Firebase
-    // We would implement Firebase token verification here
-    try {
-      // In full production, we would:
-      // 1. Decode and verify the Firebase JWT token
-      // 2. Extract the user ID from the verified token
-      // 3. Fetch the corresponding user from our database
-
-      // For now, use a placeholder verification
-      const userId = 1; // This would come from the verified token
-      const user = await storage.getUser(userId);
-
-      if (!user) {
-        return res.status(401).json({
-          success: false,
-          error: 'User not found',
-          message: 'The user associated with this token was not found'
-        });
-      }
-
-      // Add user info to request object for use in route handlers
-      req.user = user;
-      return next();
-    } catch (tokenError) {
-      console.error('Token verification error:', tokenError);
-      return res.status(401).json({
-        success: false,
-        error: 'Token verification failed',
-        message: 'Your authentication token could not be verified'
-      });
-    }
-  } catch (error) {
-    console.error('Authentication middleware error:', error);
-    return res.status(500).json({
-      success: false,
-      error: 'Authentication system error',
-      message: 'An error occurred during authentication'
-    });
-  }
-}
-
-/**
- * Role-based authorization middleware
- * Requires the user to have one of the specified roles
- * @param roles Array of allowed roles
- */
-export function authorize(roles: string[]) {
-  return (req: Request, res: Response, next: NextFunction) => {
-    if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        error: 'Authentication required',
-        message: 'You must be logged in to access this resource'
-      });
-    }
-
-    if (!roles.includes(req.user.role)) {
-      return res.status(403).json({
-        success: false,
-        error: 'Access denied',
-        message: 'You do not have permission to access this resource'
-      });
-    }
-
-    next();
-  };
-}
-
-// Add types to Express Request
+// Extend Express Request to include user information
 declare global {
   namespace Express {
     interface Request {
-      user?: any; // This would be properly typed in a full implementation
+      user?: {
+        id: number;
+        uid: string;
+        role: string;
+      };
     }
   }
+}
+
+/**
+ * Authenticate user based on Firebase UID
+ * This is a simplified version - in production, JWT verification would be used
+ */
+export function authenticate(req: Request, res: Response, next: NextFunction) {
+  // Check for authorization header
+  const authHeader = req.headers.authorization;
+  
+  // Development mode - check for special development token
+  if (process.env.NODE_ENV === 'development' && req.headers['x-dev-uid']) {
+    const uid = req.headers['x-dev-uid'] as string;
+    logger.debug(`Development authentication with UID: ${uid}`);
+    
+    // Get user from storage
+    return storage.getUserByUid(uid)
+      .then(user => {
+        if (!user) {
+          logger.warn(`Development user not found for UID: ${uid}`);
+          return res.status(401).json({
+            success: false,
+            error: 'Authentication required',
+            message: 'Please sign in to access this resource'
+          });
+        }
+        
+        // Attach user to request
+        req.user = {
+          id: user.id,
+          uid: user.uid,
+          role: user.role
+        };
+        
+        next();
+      })
+      .catch(error => {
+        logger.error('Authentication error in development mode', { error });
+        res.status(500).json({
+          success: false,
+          error: 'Authentication failed',
+          message: 'An error occurred during authentication'
+        });
+      });
+  }
+  
+  // Production authentication - check for Bearer token
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    logger.warn('Missing or invalid authorization header');
+    return res.status(401).json({
+      success: false,
+      error: 'Authentication required',
+      message: 'Please sign in to access this resource'
+    });
+  }
+  
+  // Extract token
+  const token = authHeader.split(' ')[1];
+  
+  // In production, we would verify the Firebase JWT token here
+  // For now, we'll use a simplified version that assumes the token is the Firebase UID
+  const uid = token;
+  
+  // Get user from storage
+  storage.getUserByUid(uid)
+    .then(user => {
+      if (!user) {
+        logger.warn(`User not found for UID: ${uid}`);
+        return res.status(401).json({
+          success: false,
+          error: 'Authentication required',
+          message: 'Please sign in to access this resource'
+        });
+      }
+      
+      // Attach user to request
+      req.user = {
+        id: user.id,
+        uid: user.uid,
+        role: user.role
+      };
+      
+      next();
+    })
+    .catch(error => {
+      logger.error('Authentication error', { error });
+      res.status(500).json({
+        success: false,
+        error: 'Authentication failed',
+        message: 'An error occurred during authentication'
+      });
+    });
+}
+
+/**
+ * Check if user has required roles
+ * @param roles Array of roles that are allowed to access the resource
+ */
+export function authorize(roles: string[]) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    // User must be authenticated first
+    if (!req.user) {
+      logger.warn('Unauthorized access attempt - no user');
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required',
+        message: 'Please sign in to access this resource'
+      });
+    }
+    
+    // Check if user has required role
+    if (!roles.includes(req.user.role)) {
+      logger.warn(`Unauthorized access attempt - user role ${req.user.role} not in ${roles.join(', ')}`);
+      return res.status(403).json({
+        success: false,
+        error: 'Authorization failed',
+        message: 'You do not have permission to access this resource'
+      });
+    }
+    
+    // User has required role
+    next();
+  };
 }
