@@ -1,6 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
-import { AUTH_CONFIG, IS_PRODUCTION } from '../config';
-import { storage } from '../../storage'; // For now, still using the existing storage
+import { AUTH_CONFIG, IS_PRODUCTION, FIREBASE_CONFIG } from '../config';
+import { storage } from '../../storage';
+import { createLogger } from '../utils/logger';
+import { AuthenticationError, AuthorizationError } from '../utils/errors';
+import { authenticationErrorResponse, authorizationErrorResponse } from '../utils/responses';
+import { User } from '@shared/schema';
+
+// Create a dedicated logger for authentication
+const logger = createLogger('auth-middleware');
 
 /**
  * Authentication middleware
@@ -11,69 +18,60 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
     // Extract token from Authorization header
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({
-        success: false,
-        error: 'Authentication required',
-        message: 'Please provide a valid authentication token'
-      });
+      return authenticationErrorResponse(res, 'Please provide a valid authentication token');
     }
 
     const token = authHeader.split('Bearer ')[1];
 
     // Validate token format
     if (!token || token.length < 20) {
-      return res.status(401).json({
-        success: false,
-        error: 'Invalid token format',
-        message: 'Authentication token is malformed or missing'
-      });
+      return authenticationErrorResponse(res, 'Authentication token is malformed or missing');
     }
 
     // In development, allow simplified authentication for testing
     if (!IS_PRODUCTION) {
+      logger.debug('Using development authentication');
       // For development only - set a mock user
-      req.user = { id: 1, role: 'user', uid: 'dev-uid-123' };
+      req.user = { id: 1, role: 'user', uid: 'dev-uid-123', name: 'Dev User' };
       return next();
     }
 
-    // In production, verify the token with Firebase
-    // We would implement Firebase token verification here
+    // Check if Firebase integration is available
+    if (!FIREBASE_CONFIG.available) {
+      logger.warn('Firebase authentication is not configured');
+      throw new AuthenticationError('Authentication service is not available');
+    }
+
     try {
       // In full production, we would:
       // 1. Decode and verify the Firebase JWT token
       // 2. Extract the user ID from the verified token
       // 3. Fetch the corresponding user from our database
 
-      // For now, use a placeholder verification
+      // This placeholder would be replaced with actual Firebase token verification
       const userId = 1; // This would come from the verified token
       const user = await storage.getUser(userId);
 
       if (!user) {
-        return res.status(401).json({
-          success: false,
-          error: 'User not found',
-          message: 'The user associated with this token was not found'
-        });
+        logger.warn(`User not found for ID: ${userId}`);
+        throw new AuthenticationError('The user associated with this token was not found');
       }
 
       // Add user info to request object for use in route handlers
       req.user = user;
+      logger.debug(`User authenticated: ${user.id}`);
       return next();
     } catch (tokenError) {
-      console.error('Token verification error:', tokenError);
-      return res.status(401).json({
-        success: false,
-        error: 'Token verification failed',
-        message: 'Your authentication token could not be verified'
-      });
+      logger.error('Token verification error:', { error: tokenError });
+      throw new AuthenticationError('Your authentication token could not be verified');
     }
   } catch (error) {
-    console.error('Authentication middleware error:', error);
-    return res.status(500).json({
-      success: false,
-      error: 'Authentication system error',
-      message: 'An error occurred during authentication'
-    });
+    if (error instanceof AuthenticationError) {
+      return authenticationErrorResponse(res, error.message);
+    }
+    
+    logger.error('Authentication error:', { error });
+    return authenticationErrorResponse(res, 'An error occurred during authentication');
   }
 }
 
@@ -84,23 +82,146 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
  */
 export function authorize(roles: string[]) {
   return (req: Request, res: Response, next: NextFunction) => {
-    if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        error: 'Authentication required',
-        message: 'You must be logged in to access this resource'
-      });
-    }
+    try {
+      if (!req.user) {
+        throw new AuthenticationError('You must be logged in to access this resource');
+      }
 
-    if (!roles.includes(req.user.role)) {
-      return res.status(403).json({
-        success: false,
-        error: 'Access denied',
-        message: 'You do not have permission to access this resource'
-      });
-    }
+      if (!roles.includes(req.user.role)) {
+        throw new AuthorizationError(`This action requires one of these roles: ${roles.join(', ')}`);
+      }
 
-    next();
+      logger.debug(`User ${req.user.id} authorized with role: ${req.user.role}`);
+      next();
+    } catch (error) {
+      if (error instanceof AuthenticationError) {
+        return authenticationErrorResponse(res, error.message);
+      }
+      
+      if (error instanceof AuthorizationError) {
+        return authorizationErrorResponse(res, error.message);
+      }
+      
+      logger.error('Authorization error:', { error });
+      return authorizationErrorResponse(res, 'An error occurred during authorization');
+    }
+  };
+}
+
+/**
+ * Permission-based authorization middleware
+ * Checks if a user has specific permissions
+ * @param requiredPermissions Array of required permissions
+ */
+export function requirePermissions(requiredPermissions: string[]) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    try {
+      if (!req.user) {
+        throw new AuthenticationError('You must be logged in to access this resource');
+      }
+
+      // In a real implementation, we would check user permissions from the database
+      // For now, we're using a simplified approach
+      const userPermissions = req.user.permissions || [];
+      
+      // Check if the user has all required permissions
+      const missingPermissions = requiredPermissions.filter(
+        permission => !userPermissions.includes(permission)
+      );
+      
+      if (missingPermissions.length > 0) {
+        throw new AuthorizationError(
+          `You are missing the following permissions: ${missingPermissions.join(', ')}`
+        );
+      }
+
+      logger.debug(`User ${req.user.id} has required permissions`);
+      next();
+    } catch (error) {
+      if (error instanceof AuthenticationError) {
+        return authenticationErrorResponse(res, error.message);
+      }
+      
+      if (error instanceof AuthorizationError) {
+        return authorizationErrorResponse(res, error.message);
+      }
+      
+      logger.error('Permission check error:', { error });
+      return authorizationErrorResponse(res, 'An error occurred checking permissions');
+    }
+  };
+}
+
+/**
+ * Ownership verification middleware
+ * Ensures a user owns or has access to a resource
+ * @param resourceType The type of resource being accessed
+ * @param idParam The parameter containing the resource ID
+ */
+export function verifyOwnership(resourceType: string, idParam: string = 'id') {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      if (!req.user) {
+        throw new AuthenticationError('You must be logged in to access this resource');
+      }
+
+      const resourceId = parseInt(req.params[idParam], 10);
+      if (isNaN(resourceId)) {
+        return authorizationErrorResponse(res, `Invalid ${resourceType} ID`);
+      }
+
+      // Admins bypass ownership checks
+      if (req.user.role === 'admin') {
+        logger.debug(`Admin access granted for ${resourceType} ${resourceId}`);
+        return next();
+      }
+
+      // Fetch the resource and check ownership
+      // This would be implemented with appropriate storage method calls
+      let resource;
+      let ownerId;
+
+      switch (resourceType) {
+        case 'contract':
+          resource = await storage.getContract(resourceId);
+          ownerId = resource?.userId;
+          break;
+        case 'template':
+          resource = await storage.getTemplate(resourceId);
+          ownerId = resource?.createdBy;
+          break;
+        case 'consultation':
+          resource = await storage.getConsultation(resourceId);
+          ownerId = resource?.userId;
+          break;
+        default:
+          logger.error(`Unknown resource type: ${resourceType}`);
+          throw new Error(`Unknown resource type: ${resourceType}`);
+      }
+
+      if (!resource) {
+        return authorizationErrorResponse(res, `${resourceType} not found`);
+      }
+
+      if (ownerId !== req.user.id) {
+        logger.warn(`Ownership verification failed for ${resourceType} ${resourceId}`);
+        throw new AuthorizationError(`You do not have access to this ${resourceType}`);
+      }
+
+      logger.debug(`Ownership verified for ${resourceType} ${resourceId}`);
+      next();
+    } catch (error) {
+      if (error instanceof AuthenticationError) {
+        return authenticationErrorResponse(res, error.message);
+      }
+      
+      if (error instanceof AuthorizationError) {
+        return authorizationErrorResponse(res, error.message);
+      }
+      
+      logger.error('Ownership verification error:', { error });
+      return authorizationErrorResponse(res, `Error verifying ${resourceType} ownership`);
+    }
   };
 }
 
@@ -108,7 +229,7 @@ export function authorize(roles: string[]) {
 declare global {
   namespace Express {
     interface Request {
-      user?: any; // This would be properly typed in a full implementation
+      user?: User; // Using the User type from our schema
     }
   }
 }
