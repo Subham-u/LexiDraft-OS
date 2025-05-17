@@ -1,12 +1,15 @@
 /**
- * Configuration for LexiDraft services
- * This file centralizes all configuration settings
+ * Central configuration for LexiDraft
+ * Exports all configuration settings from individual modules
  */
 
-// Environment configuration
-export const ENV = process.env.NODE_ENV || 'development';
-export const IS_PRODUCTION = ENV === 'production';
-export const IS_DEVELOPMENT = ENV === 'development';
+export * from './service';
+export * from './database';
+export * from './redis';
+
+import { ENV, IS_PRODUCTION } from './service';
+import { DB_CONFIG } from './database';
+import { REDIS_CONFIG } from './redis';
 
 // API keys and external service configurations
 export const OPENAI_CONFIG = {
@@ -41,29 +44,11 @@ export const FIREBASE_CONFIG = {
               process.env.VITE_FIREBASE_APP_ID)
 };
 
-// Server configuration
-export const SERVER_CONFIG = {
-  port: 5000,
-  host: '0.0.0.0',
-  reusePort: true
-};
-
-// Database configuration
-export const DB_CONFIG = {
-  url: process.env.DATABASE_URL,
-  available: !!process.env.DATABASE_URL
-};
-
-// Authentication configuration
-export const AUTH_CONFIG = {
-  tokenExpiryTime: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
-  jwtSecret: process.env.JWT_SECRET || 'lexidraft-dev-secret-key', // Should be set in production
-};
-
 // Service status check and logging
 export function checkServiceAvailability() {
   return {
     database: DB_CONFIG.available,
+    redis: REDIS_CONFIG.available,
     openai: OPENAI_CONFIG.available,
     cashfree: CASHFREE_CONFIG.available,
     sendgrid: SENDGRID_CONFIG.available,

@@ -5,7 +5,7 @@ import { createServer, type Server } from "http";
 import { setupVite, serveStatic } from "./vite";
 import { SERVER_CONFIG, logServiceStatus } from "./shared/config";
 import { createLogger } from "./shared/utils/logger";
-import apiRouter from "./microservices";
+import { startServices } from "./services";
 import { initializeDatabase } from "./shared/models/db";
 
 // Create logger
@@ -59,8 +59,14 @@ logServiceStatus();
 // Create HTTP server
 const server: Server = createServer(app);
 
-// Setup API routes using microservices
-app.use('/api', apiRouter);
+// Start the microservices
+startServices()
+  .then(services => {
+    logger.info('All services started successfully');
+  })
+  .catch(error => {
+    logger.error('Failed to start services', { error });
+  });
 
 // Global error handler
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
