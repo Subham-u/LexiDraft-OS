@@ -102,10 +102,10 @@ app.use('/api', apiRoutes);
 app.use(errorHandler);
 
 // Start the server
-const PORT = process.env.PORT || 3000;
+const PORT = parseInt(process.env.PORT || '3000', 10);
 
 if (process.env.NODE_ENV !== 'test') {
-  server.listen(PORT, () => {
+  server.listen(PORT, '0.0.0.0', () => {
     logger.info(`Server is running on port ${PORT}`);
     logger.info(`WebSocket server ready for real-time notifications and chat`);
   });
