@@ -113,12 +113,58 @@ apiRouter.get('/templates/popular', async (req, res) => {
   try {
     logger.info(`Popular templates requested`);
     
-    // Get templates from storage - when implemented
-    // const templates = await storage.getPopularTemplates(5);
+    // Sample popular template data for frontend development
+    const popularTemplates = [
+      {
+        id: 1,
+        title: "Non-Disclosure Agreement",
+        description: "A standard NDA to protect confidential information when sharing with third parties.",
+        type: "nda",
+        category: "nda",
+        tags: ["Confidentiality", "Legal", "Business"],
+        isPremium: false,
+        price: 0,
+        downloads: 832,
+        rating: 4.8,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        userId: 1
+      },
+      {
+        id: 3,
+        title: "Employment Contract",
+        description: "Standard employment contract compliant with Indian labor laws.",
+        type: "employment",
+        category: "employment",
+        tags: ["Employment", "HR", "Compliance"],
+        isPremium: true,
+        price: 49.99,
+        downloads: 542,
+        rating: 4.7,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        userId: 1
+      },
+      {
+        id: 5,
+        title: "Founder's Agreement",
+        description: "Essential agreement for startup co-founders defining equity, roles, and responsibilities.",
+        type: "founder",
+        category: "startup",
+        tags: ["Startup", "Founders", "Equity"],
+        isPremium: false,
+        price: 0,
+        downloads: 619,
+        rating: 4.9,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        userId: 1
+      }
+    ];
     
     res.status(200).json({
       success: true,
-      data: []
+      data: popularTemplates
     });
   } catch (error) {
     logger.error(`Error fetching popular templates: ${error}`);
@@ -134,12 +180,78 @@ apiRouter.get('/templates', async (req, res) => {
   try {
     logger.info(`All templates requested`);
     
-    // Get templates from storage - when implemented
-    // const templates = await storage.getAllTemplates();
+    // Sample template data for frontend development
+    const sampleTemplates = [
+      {
+        id: 1,
+        title: "Non-Disclosure Agreement",
+        description: "A standard NDA to protect confidential information when sharing with third parties.",
+        type: "nda",
+        category: "nda",
+        tags: ["Confidentiality", "Legal", "Business"],
+        isPremium: false,
+        price: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        userId: 1
+      },
+      {
+        id: 2,
+        title: "Freelance Services Agreement",
+        description: "A comprehensive contract for freelancers providing services to clients.",
+        type: "freelance",
+        category: "freelance",
+        tags: ["Freelance", "Services", "Payment"],
+        isPremium: true,
+        price: 29.99,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        userId: 1
+      },
+      {
+        id: 3,
+        title: "Employment Contract",
+        description: "Standard employment contract compliant with Indian labor laws.",
+        type: "employment",
+        category: "employment",
+        tags: ["Employment", "HR", "Compliance"],
+        isPremium: true,
+        price: 49.99,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        userId: 1
+      },
+      {
+        id: 4,
+        title: "Real Estate Lease Agreement",
+        description: "Commercial property lease agreement with standard terms and conditions.",
+        type: "lease",
+        category: "real-estate",
+        tags: ["Real Estate", "Lease", "Commercial"],
+        isPremium: true,
+        price: 39.99,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        userId: 1
+      },
+      {
+        id: 5,
+        title: "Founder's Agreement",
+        description: "Essential agreement for startup co-founders defining equity, roles, and responsibilities.",
+        type: "founder",
+        category: "startup",
+        tags: ["Startup", "Founders", "Equity"],
+        isPremium: false,
+        price: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        userId: 1
+      }
+    ];
     
     res.status(200).json({
       success: true,
-      data: []
+      data: sampleTemplates
     });
   } catch (error) {
     logger.error(`Error fetching templates: ${error}`);

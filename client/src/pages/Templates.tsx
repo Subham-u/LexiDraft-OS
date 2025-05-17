@@ -33,13 +33,10 @@ export default function Templates() {
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [showFilters, setShowFilters] = useState(false)
 
-  const { data: templateResponse, isLoading } = useQuery({
+  const { data: templates = [], isLoading } = useQuery({
     queryKey: ["/api/templates"],
     staleTime: 60000, // 1 minute
   })
-  
-  // Extract templates array from the response structure
-  const templates = templateResponse?.data || []
 
   // Categories with icons
   const categories = [
@@ -55,7 +52,9 @@ export default function Templates() {
   const filteredTemplates = templates
     ? templates.filter((template: Template) => {
         const matchesSearch = template.title.toLowerCase().includes(searchQuery.toLowerCase())
-        const matchesCategory = selectedCategory === "all" || template.category === selectedCategory
+        const matchesCategory = selectedCategory === "all" || 
+          // Handle both old and new format (category vs type)
+          (template.category === selectedCategory || template.type === selectedCategory)
         return matchesSearch && matchesCategory
       })
     : []
