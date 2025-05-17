@@ -13,6 +13,9 @@ import apiRoutes from './routes';
 // Initialize logger
 const logger = createLogger('server');
 
+// Import migrations
+import { initializeMigrations } from './db/migrations';
+
 // Initialize Firebase Admin
 try {
   initializeFirebaseAdmin();
@@ -20,6 +23,15 @@ try {
 } catch (error) {
   logger.error('Failed to initialize Firebase Admin SDK', error);
 }
+
+// Initialize database and run migrations
+initializeMigrations()
+  .then(() => {
+    logger.info('Database migrations completed successfully');
+  })
+  .catch(err => {
+    logger.error('Failed to run database migrations', err);
+  });
 
 // Create Express application
 const app: Express = express();
