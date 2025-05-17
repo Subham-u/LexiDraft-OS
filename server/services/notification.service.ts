@@ -114,7 +114,7 @@ export async function markAllNotificationsAsRead(userId: number) {
   try {
     await db
       .update(notifications)
-      .set({ isRead: true })
+      .set({ read: true })
       .where(eq(notifications.userId, userId));
     
     return true;
