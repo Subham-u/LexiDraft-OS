@@ -24,6 +24,83 @@ export const contractTypeEnum = pgEnum('contract_type', [
 ]);
 export const partyRoleEnum = pgEnum('party_role', ['client', 'provider', 'employer', 'employee', 'lessor', 'lessee', 'other']);
 
+// Payment & Subscription Enums
+export const paymentStatusEnum = pgEnum('payment_status', [
+  'pending',
+  'processing',
+  'completed',
+  'failed',
+  'refunded',
+  'cancelled'
+]);
+
+export const paymentTypeEnum = pgEnum('payment_type', [
+  'consultation',
+  'subscription',
+  'contract_analysis',
+  'document_generation',
+  'other'
+]);
+
+export const subscriptionPlanEnum = pgEnum('subscription_plan', [
+  'free',
+  'basic',
+  'professional',
+  'enterprise'
+]);
+
+export const subscriptionStatusEnum = pgEnum('subscription_status', [
+  'active',
+  'cancelled',
+  'expired',
+  'trial',
+  'past_due'
+]);
+
+// Lawyer Marketplace Enums
+export const lawyerPracticeAreaEnum = pgEnum('practice_area', [
+  'contract_law',
+  'property_law',
+  'criminal_law',
+  'corporate_law',
+  'family_law',
+  'intellectual_property',
+  'startup_law',
+  'real_estate',
+  'tax_law',
+  'employment_law',
+  'immigration_law',
+  'environmental_law',
+  'bankruptcy_law',
+  'constitutional_law',
+  'entertainment_law',
+  'medical_law',
+  'cyber_law',
+  'international_law',
+  'human_rights',
+  'other'
+]);
+
+export const consultationModeEnum = pgEnum('consultation_mode', [
+  'video',
+  'call',
+  'chat'
+]);
+
+export const consultationStatusEnum = pgEnum('consultation_status', [
+  'scheduled',
+  'ongoing',
+  'completed',
+  'cancelled',
+  'no_show'
+]);
+
+export const verificationStatusEnum = pgEnum('verification_status', [
+  'pending',
+  'verified',
+  'rejected'
+]);
+
 // Users
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
@@ -103,71 +180,6 @@ export const aiConversations = pgTable('ai_conversations', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
-
-// Custom types
-export type Party = {
-  name: string;
-  role: string;
-  email?: string;
-  address?: string;
-};
-
-export type Clause = {
-  id: string;
-  title: string;
-  content: string;
-  explanation?: string;
-};
-
-export type AIMessage = {
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: string;
-};
-
-// Lawyer Marketplace Types
-export const lawyerPracticeAreaEnum = pgEnum('practice_area', [
-  'contract_law',
-  'property_law',
-  'criminal_law',
-  'corporate_law',
-  'family_law',
-  'intellectual_property',
-  'startup_law',
-  'real_estate',
-  'tax_law',
-  'employment_law',
-  'immigration_law',
-  'environmental_law',
-  'bankruptcy_law',
-  'constitutional_law',
-  'entertainment_law',
-  'medical_law',
-  'cyber_law',
-  'international_law',
-  'human_rights',
-  'other'
-]);
-
-export const consultationModeEnum = pgEnum('consultation_mode', [
-  'video',
-  'call',
-  'chat'
-]);
-
-export const consultationStatusEnum = pgEnum('consultation_status', [
-  'scheduled',
-  'ongoing',
-  'completed',
-  'cancelled',
-  'no_show'
-]);
-
-export const verificationStatusEnum = pgEnum('verification_status', [
-  'pending',
-  'verified',
-  'rejected'
-]);
 
 // Lawyer profile schema
 export const lawyers = pgTable('lawyers', {
@@ -249,85 +261,6 @@ export const sharedDocuments = pgTable('shared_documents', {
   size: integer('size'),
   createdAt: timestamp('created_at').defaultNow()
 });
-
-// Insert schemas
-export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true, updatedAt: true });
-export const insertContractSchema = createInsertSchema(contracts).omit({ id: true, createdAt: true, updatedAt: true });
-export const insertTemplateSchema = createInsertSchema(templates).omit({ id: true, createdAt: true, updatedAt: true });
-export const insertClientSchema = createInsertSchema(clients).omit({ id: true, createdAt: true, updatedAt: true });
-export const insertClauseSchema = createInsertSchema(clauses).omit({ id: true, createdAt: true, updatedAt: true });
-export const insertAIConversationSchema = createInsertSchema(aiConversations).omit({ id: true, createdAt: true, updatedAt: true });
-
-// Lawyer marketplace schema inserts
-export const insertLawyerSchema = createInsertSchema(lawyers);
-export const insertLawyerReviewSchema = createInsertSchema(lawyerReviews);
-export const insertConsultationSchema = createInsertSchema(consultations);
-export const insertSharedDocumentSchema = createInsertSchema(sharedDocuments);
-
-// Types
-export type User = typeof users.$inferSelect;
-export type InsertUser = z.infer<typeof insertUserSchema>;
-
-export type Contract = typeof contracts.$inferSelect;
-export type InsertContract = z.infer<typeof insertContractSchema>;
-
-export type Template = typeof templates.$inferSelect;
-export type InsertTemplate = z.infer<typeof insertTemplateSchema>;
-
-export type Client = typeof clients.$inferSelect;
-export type InsertClient = z.infer<typeof insertClientSchema>;
-
-export type ClauseModel = typeof clauses.$inferSelect;
-export type InsertClause = z.infer<typeof insertClauseSchema>;
-
-export type AIConversation = typeof aiConversations.$inferSelect;
-export type InsertAIConversation = z.infer<typeof insertAIConversationSchema>;
-
-// Lawyer marketplace types
-export type Lawyer = typeof lawyers.$inferSelect;
-export type InsertLawyer = z.infer<typeof insertLawyerSchema>;
-
-export type LawyerReview = typeof lawyerReviews.$inferSelect;
-export type InsertLawyerReview = z.infer<typeof insertLawyerReviewSchema>;
-
-export type Consultation = typeof consultations.$inferSelect;
-export type InsertConsultation = z.infer<typeof insertConsultationSchema>;
-
-export type SharedDocument = typeof sharedDocuments.$inferSelect;
-export type InsertSharedDocument = z.infer<typeof insertSharedDocumentSchema>;
-
-// Payment & Subscription Enums
-export const paymentStatusEnum = pgEnum('payment_status', [
-  'pending',
-  'processing',
-  'completed',
-  'failed',
-  'refunded',
-  'cancelled'
-]);
-
-export const paymentTypeEnum = pgEnum('payment_type', [
-  'consultation',
-  'subscription',
-  'contract_analysis',
-  'document_generation',
-  'other'
-]);
-
-export const subscriptionPlanEnum = pgEnum('subscription_plan', [
-  'free',
-  'basic',
-  'professional',
-  'enterprise'
-]);
-
-export const subscriptionStatusEnum = pgEnum('subscription_status', [
-  'active',
-  'cancelled',
-  'expired',
-  'trial',
-  'past_due'
-]);
 
 // Payments table
 export const payments = pgTable('payments', {
@@ -433,16 +366,83 @@ export const chatMessages = pgTable('chat_messages', {
   createdAt: timestamp('created_at').defaultNow().notNull()
 });
 
-// Add insert schemas for new tables
-export const insertPaymentSchema = createInsertSchema(payments);
-export const insertSubscriptionSchema = createInsertSchema(subscriptions);
-export const insertContractAnalysisSchema = createInsertSchema(contractAnalyses);
-export const insertDocumentVersionSchema = createInsertSchema(documentVersions);
-export const insertNotificationSchema = createInsertSchema(notifications);
-export const insertChatMessageSchema = createInsertSchema(chatMessages);
-export const insertChatRoomSchema = createInsertSchema(chatRooms);
+// Custom types
+export type Party = {
+  name: string;
+  role: string;
+  email?: string;
+  address?: string;
+};
 
-// Add new types for the new tables
+export type Clause = {
+  id: string;
+  title: string;
+  content: string;
+  explanation?: string;
+};
+
+export type AIMessage = {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string;
+};
+
+// Insert schemas
+export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertContractSchema = createInsertSchema(contracts).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertTemplateSchema = createInsertSchema(templates).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertClientSchema = createInsertSchema(clients).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertClauseSchema = createInsertSchema(clauses).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertAIConversationSchema = createInsertSchema(aiConversations).omit({ id: true, createdAt: true, updatedAt: true });
+
+// Lawyer marketplace schema inserts
+export const insertLawyerSchema = createInsertSchema(lawyers);
+export const insertLawyerReviewSchema = createInsertSchema(lawyerReviews);
+export const insertConsultationSchema = createInsertSchema(consultations);
+export const insertSharedDocumentSchema = createInsertSchema(sharedDocuments);
+
+// New schema inserts for payment, subscription, etc.
+export const insertPaymentSchema = createInsertSchema(payments).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertSubscriptionSchema = createInsertSchema(subscriptions).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertContractAnalysisSchema = createInsertSchema(contractAnalyses).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertDocumentVersionSchema = createInsertSchema(documentVersions).omit({ id: true, createdAt: true });
+export const insertNotificationSchema = createInsertSchema(notifications).omit({ id: true, createdAt: true });
+export const insertChatRoomSchema = createInsertSchema(chatRooms).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({ id: true, createdAt: true });
+
+// Types
+export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
+
+export type Contract = typeof contracts.$inferSelect;
+export type InsertContract = z.infer<typeof insertContractSchema>;
+
+export type Template = typeof templates.$inferSelect;
+export type InsertTemplate = z.infer<typeof insertTemplateSchema>;
+
+export type Client = typeof clients.$inferSelect;
+export type InsertClient = z.infer<typeof insertClientSchema>;
+
+export type ClauseModel = typeof clauses.$inferSelect;
+export type InsertClause = z.infer<typeof insertClauseSchema>;
+
+export type AIConversation = typeof aiConversations.$inferSelect;
+export type InsertAIConversation = z.infer<typeof insertAIConversationSchema>;
+
+// Lawyer marketplace types
+export type Lawyer = typeof lawyers.$inferSelect;
+export type InsertLawyer = z.infer<typeof insertLawyerSchema>;
+
+export type LawyerReview = typeof lawyerReviews.$inferSelect;
+export type InsertLawyerReview = z.infer<typeof insertLawyerReviewSchema>;
+
+export type Consultation = typeof consultations.$inferSelect;
+export type InsertConsultation = z.infer<typeof insertConsultationSchema>;
+
+export type SharedDocument = typeof sharedDocuments.$inferSelect;
+export type InsertSharedDocument = z.infer<typeof insertSharedDocumentSchema>;
+
+// New types for payment, subscription, etc.
 export type Payment = typeof payments.$inferSelect;
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;
 
@@ -458,8 +458,8 @@ export type InsertDocumentVersion = z.infer<typeof insertDocumentVersionSchema>;
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 
-export type ChatMessage = typeof chatMessages.$inferSelect;
-export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
-
 export type ChatRoom = typeof chatRooms.$inferSelect;
 export type InsertChatRoom = z.infer<typeof insertChatRoomSchema>;
+
+export type ChatMessage = typeof chatMessages.$inferSelect;
+export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
