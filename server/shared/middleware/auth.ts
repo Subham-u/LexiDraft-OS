@@ -48,7 +48,7 @@ export function authenticate(req: Request, res: Response, next: NextFunction) {
         // Attach user to request
         req.user = {
           id: user.id,
-          uid: user.uid,
+          uid: user.uid || '',
           role: user.role
         };
         
@@ -96,7 +96,7 @@ export function authenticate(req: Request, res: Response, next: NextFunction) {
       // Attach user to request
       req.user = {
         id: user.id,
-        uid: user.uid,
+        uid: user.uid || '',
         role: user.role
       };
       
