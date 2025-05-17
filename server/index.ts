@@ -59,9 +59,8 @@ logServiceStatus();
 // Create HTTP server
 const server: Server = createServer(app);
 
-// During migration: Use the legacy API router 
-import apiRouter from "./microservices";
-app.use('/api', apiRouter);
+// Now we will use our new services directly
+// Routes are mounted in the setupServices function
 
 // Use the main Express app to mount service routes directly
 // This simplifies our architecture and avoids port conflicts
