@@ -2,47 +2,52 @@
  * Main entry point for LexiDraft services
  * Initializes and coordinates all microservices
  */
+import { Express, Router } from 'express';
+import { Server } from 'http';
 import { createLogger } from '../shared/utils/logger';
 import { SERVICES } from '../shared/config/service';
-import gatewayService from './gateway-service/src';
-import { startService as startUserService } from './user-service/src';
+import { routes as userRoutes } from './user-service/src/routes';
 
 const logger = createLogger('services');
 
 /**
  * Start all microservices and register them with the gateway
+ * Legacy method - will be replaced by setupServices
  */
 export async function startServices() {
   logger.info('Starting LexiDraft microservices...');
   
-  // Start the gateway service first
-  const gateway = gatewayService.startGateway();
-  logger.info(`Gateway service started on port ${SERVICES.gateway.port}`);
+  // This function is now a stub for backward compatibility
+  // The actual service initialization is handled by setupServices
   
-  // Start the user service
-  const userService = startUserService();
+  return {
+    // Return empty placeholder
+  };
+}
+
+/**
+ * Setup services by mounting their routes on the main Express app
+ * This is the new approach for service integration
+ */
+export async function setupServices(app: Express, server: Server) {
+  logger.info('Setting up LexiDraft services...');
   
-  // Register services with the gateway as they become available
-  userService.on('listening', () => {
-    const address = userService.address();
-    const port = typeof address === 'object' && address ? address.port : 0;
-    
-    logger.info(`User service started on port ${port}`);
-    gatewayService.registerService('user', '127.0.0.1', port);
-  });
+  // Mount user service routes
+  app.use(SERVICES.user.path, userRoutes);
+  logger.info(`Mounted user service at ${SERVICES.user.path}`);
   
-  // TODO: Add other services as they are implemented
-  // const contractService = startContractService();
-  // const lawyerService = startLawyerService();
+  // TODO: Mount other service routes as they are implemented
+  // app.use(SERVICES.lawyer.path, lawyerRoutes);
+  // app.use(SERVICES.contract.path, contractRoutes);
   // etc.
   
   return {
-    gateway,
-    userService,
-    // Add other services here
+    app,
+    server
   };
 }
 
 export default {
-  startServices
+  startServices,
+  setupServices
 };

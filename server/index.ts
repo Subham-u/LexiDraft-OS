@@ -63,14 +63,20 @@ const server: Server = createServer(app);
 import apiRouter from "./microservices";
 app.use('/api', apiRouter);
 
-// Start the microservices in the background
-// This allows the legacy API to continue functioning during migration
-startServices()
-  .then(services => {
-    logger.info('All services started successfully');
+// In this model, we'll use the main Express app as the gateway
+// rather than running a separate gateway service
+// We'll still initialize the individual microservices with their own routes
+
+// Pass the main server instance to the services module
+import { setupServices } from "./services";
+
+// Setup the services using the main Express app as the gateway
+setupServices(app, server)
+  .then(() => {
+    logger.info('All services initialized successfully');
   })
   .catch(error => {
-    logger.error('Failed to start services', { error });
+    logger.error('Failed to initialize services', { error });
   });
 
 // Global error handler
