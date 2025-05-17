@@ -295,3 +295,171 @@ export type InsertConsultation = z.infer<typeof insertConsultationSchema>;
 
 export type SharedDocument = typeof sharedDocuments.$inferSelect;
 export type InsertSharedDocument = z.infer<typeof insertSharedDocumentSchema>;
+
+// Payment & Subscription Enums
+export const paymentStatusEnum = pgEnum('payment_status', [
+  'pending',
+  'processing',
+  'completed',
+  'failed',
+  'refunded',
+  'cancelled'
+]);
+
+export const paymentTypeEnum = pgEnum('payment_type', [
+  'consultation',
+  'subscription',
+  'contract_analysis',
+  'document_generation',
+  'other'
+]);
+
+export const subscriptionPlanEnum = pgEnum('subscription_plan', [
+  'free',
+  'basic',
+  'professional',
+  'enterprise'
+]);
+
+export const subscriptionStatusEnum = pgEnum('subscription_status', [
+  'active',
+  'cancelled',
+  'expired',
+  'trial',
+  'past_due'
+]);
+
+// Payments table
+export const payments = pgTable('payments', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').references(() => users.id).notNull(),
+  amount: integer('amount').notNull(), // in paise (1/100th of INR)
+  currency: text('currency').default('INR').notNull(),
+  status: paymentStatusEnum('status').default('pending').notNull(),
+  type: paymentTypeEnum('type').notNull(),
+  paymentMethod: text('payment_method'),
+  paymentProvider: text('payment_provider'),
+  paymentProviderId: text('payment_provider_id'),
+  metadata: json('metadata'),
+  relatedEntityId: integer('related_entity_id'), // ID of related contract/consultation
+  relatedEntityType: text('related_entity_type'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull()
+});
+
+// Subscriptions table
+export const subscriptions = pgTable('subscriptions', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').references(() => users.id).notNull(),
+  plan: subscriptionPlanEnum('plan').notNull(),
+  status: subscriptionStatusEnum('status').default('active').notNull(),
+  startDate: timestamp('start_date').notNull(),
+  endDate: timestamp('end_date'),
+  trialEndsAt: timestamp('trial_ends_at'),
+  cancelAtPeriodEnd: boolean('cancel_at_period_end').default(false),
+  currentPeriodStart: timestamp('current_period_start'),
+  currentPeriodEnd: timestamp('current_period_end'),
+  paymentProviderId: text('payment_provider_id'),
+  metadata: json('metadata'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull()
+});
+
+// Contract Analysis table
+export const contractAnalyses = pgTable('contract_analyses', {
+  id: serial('id').primaryKey(),
+  contractId: integer('contract_id').references(() => contracts.id).notNull(),
+  userId: integer('user_id').references(() => users.id).notNull(),
+  riskScore: integer('risk_score'),
+  completeness: integer('completeness'),
+  issues: json('issues').array(),
+  strengths: json('strengths').array(),
+  weaknesses: json('weaknesses').array(),
+  recommendations: json('recommendations').array(),
+  compliantWithIndianLaw: boolean('compliant_with_indian_law'),
+  analysisMetadata: json('analysis_metadata'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull()
+});
+
+// Document Versions table
+export const documentVersions = pgTable('document_versions', {
+  id: serial('id').primaryKey(),
+  documentId: integer('document_id').notNull(), // References either contracts.id or shared_documents.id
+  documentType: text('document_type').notNull(), // 'contract' or 'shared_document'
+  version: integer('version').notNull(),
+  content: text('content').notNull(),
+  changes: json('changes'),
+  createdBy: integer('created_by').references(() => users.id).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull()
+});
+
+// Notifications table
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').references(() => users.id).notNull(),
+  type: text('type').notNull(),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  read: boolean('read').default(false).notNull(),
+  metadata: json('metadata'),
+  relatedEntityId: integer('related_entity_id'),
+  relatedEntityType: text('related_entity_type'),
+  createdAt: timestamp('created_at').defaultNow().notNull()
+});
+
+// Chat Messages table
+export const chatMessages = pgTable('chat_messages', {
+  id: serial('id').primaryKey(),
+  senderId: integer('sender_id').references(() => users.id).notNull(),
+  receiverId: integer('receiver_id').references(() => users.id).notNull(),
+  content: text('content').notNull(),
+  attachments: json('attachments').array(),
+  read: boolean('read').default(false).notNull(),
+  relatedEntityId: integer('related_entity_id'),
+  relatedEntityType: text('related_entity_type'),
+  createdAt: timestamp('created_at').defaultNow().notNull()
+});
+
+// Chat Rooms table
+export const chatRooms = pgTable('chat_rooms', {
+  id: serial('id').primaryKey(),
+  name: text('name'),
+  type: text('type').notNull(), // 'direct', 'consultation', 'contract'
+  participants: integer('participants').array().notNull(),
+  lastMessageAt: timestamp('last_message_at'),
+  metadata: json('metadata'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull()
+});
+
+// Add insert schemas for new tables
+export const insertPaymentSchema = createInsertSchema(payments);
+export const insertSubscriptionSchema = createInsertSchema(subscriptions);
+export const insertContractAnalysisSchema = createInsertSchema(contractAnalyses);
+export const insertDocumentVersionSchema = createInsertSchema(documentVersions);
+export const insertNotificationSchema = createInsertSchema(notifications);
+export const insertChatMessageSchema = createInsertSchema(chatMessages);
+export const insertChatRoomSchema = createInsertSchema(chatRooms);
+
+// Add new types for the new tables
+export type Payment = typeof payments.$inferSelect;
+export type InsertPayment = z.infer<typeof insertPaymentSchema>;
+
+export type Subscription = typeof subscriptions.$inferSelect;
+export type InsertSubscription = z.infer<typeof insertSubscriptionSchema>;
+
+export type ContractAnalysis = typeof contractAnalyses.$inferSelect;
+export type InsertContractAnalysis = z.infer<typeof insertContractAnalysisSchema>;
+
+export type DocumentVersion = typeof documentVersions.$inferSelect;
+export type InsertDocumentVersion = z.infer<typeof insertDocumentVersionSchema>;
+
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+
+export type ChatMessage = typeof chatMessages.$inferSelect;
+export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
+
+export type ChatRoom = typeof chatRooms.$inferSelect;
+export type InsertChatRoom = z.infer<typeof insertChatRoomSchema>;
