@@ -1,0 +1,73 @@
+/**
+ * LexiDraft Server - Main entry point
+ */
+import express, { Express, Request, Response, NextFunction } from 'express';
+import http from 'http';
+import cors from 'cors';
+import path from 'path';
+import { initializeFirebaseAdmin } from './services/firebase';
+import { createLogger } from './utils/logger';
+import { errorHandler } from './middleware/error';
+import apiRoutes from './routes';
+
+// Initialize logger
+const logger = createLogger('server');
+
+// Initialize Firebase Admin
+try {
+  initializeFirebaseAdmin();
+  logger.info('Firebase Admin SDK initialized successfully');
+} catch (error) {
+  logger.error('Failed to initialize Firebase Admin SDK', error);
+}
+
+// Create Express application
+const app: Express = express();
+const server = http.createServer(app);
+
+// Apply middleware
+app.use(cors());
+app.use(express.json({ limit: '5mb' })); // Increased limit for contract content
+app.use(express.urlencoded({ extended: true }));
+
+// Security headers middleware
+app.use((req: Request, res: Response, next: NextFunction) => {
+  // Set basic security headers
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('X-Frame-Options', 'DENY');
+  next();
+});
+
+// Request logging middleware
+app.use((req: Request, res: Response, next: NextFunction) => {
+  logger.info(`${req.method} ${req.path}`);
+  next();
+});
+
+// Health check endpoint
+app.get('/api/health', (req: Request, res: Response) => {
+  res.json({
+    success: true,
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    version: process.env.npm_package_version || '1.0.0'
+  });
+});
+
+// Mount API routes
+app.use('/api', apiRoutes);
+
+// Global error handler
+app.use(errorHandler);
+
+// Start the server
+const PORT = process.env.PORT || 3000;
+
+if (process.env.NODE_ENV !== 'test') {
+  server.listen(PORT, '0.0.0.0', () => {
+    logger.info(`Server is running on port ${PORT}`);
+  });
+}
+
+export { app, server };
