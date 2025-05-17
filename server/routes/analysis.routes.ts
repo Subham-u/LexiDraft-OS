@@ -1,269 +1,107 @@
 /**
- * Contract analysis routes for AI-powered contract analysis
+ * Contract Analysis API Routes
  */
-import express, { Router, Request, Response } from 'express';
-import { asyncHandler, ApiError } from '../middleware/error';
+
+import { Router, Request, Response } from 'express';
+import { aiAnalysisService, AnalysisRequest } from '../services/ai-analysis.service';
 import { authenticate } from '../middleware/auth';
-import { createLogger } from '../utils/logger';
-import * as analysisService from '../services/analysis.service';
-import * as aiAnalysisService from '../services/ai-analysis.service';
+import { asyncHandler } from '../middleware/error';
+import { logger } from '../utils/logger';
+import { z } from 'zod';
 
-const router: Router = express.Router();
-const logger = createLogger('analysis-routes');
+const router = Router();
+
+// Validation schema for analysis request
+const analysisRequestSchema = z.object({
+  contractId: z.number(),
+  userId: z.number(),
+  analysisType: z.enum(['full', 'clauses', 'missing', 'compliance']),
+  options: z.object({
+    jurisdiction: z.string().optional(),
+    contractType: z.string().optional(),
+    focusAreas: z.array(z.string()).optional(),
+  }).optional(),
+});
 
 /**
- * Generate AI analysis for a contract
- * @route POST /api/analysis/contracts/:contractId/ai
+ * @route POST /api/contracts/analysis
+ * @desc Request a contract analysis
  */
-router.post("/contracts/:contractId/ai", authenticate(), asyncHandler(async (req: Request, res: Response) => {
-  if (!req.user) {
-    throw ApiError.unauthorized('Authentication required');
+router.post('/contracts/analysis', authenticate(), asyncHandler(async (req: Request, res: Response) => {
+  logger.info('Received contract analysis request');
+  
+  try {
+    // Validate request
+    const validatedData = analysisRequestSchema.parse(req.body);
+    
+    // Ensure the user ID matches the authenticated user
+    if (req.user && req.user.id !== validatedData.userId) {
+      logger.warn(`User ${req.user.id} attempted to analyze contract for user ${validatedData.userId}`);
+      validatedData.userId = req.user.id;
+    }
+    
+    // Request analysis
+    const analysisId = await aiAnalysisService.analyzeContract(validatedData as AnalysisRequest);
+    
+    logger.info(`Created analysis request with ID: ${analysisId}`);
+    
+    return res.status(202).json({
+      id: analysisId,
+      contractId: validatedData.contractId,
+      status: 'pending',
+      message: 'Contract analysis initiated. Check the analysis endpoint for results.',
+    });
+  } catch (error) {
+    logger.error(`Error in contract analysis request: ${error.message}`, error);
+    
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        error: 'Invalid request data',
+        details: error.errors,
+      });
+    }
+    
+    throw error;
   }
-  
-  const contractId = parseInt(req.params.contractId);
-  
-  if (isNaN(contractId)) {
-    throw ApiError.badRequest('Invalid contract ID');
-  }
-  
-  logger.info(`Generating AI analysis for contract: ${contractId} by user: ${req.user.id}`);
-  
-  const analysis = await aiAnalysisService.analyzeContract(contractId, req.user.id);
-  
-  return res.status(201).json({
-    success: true,
-    data: analysis
-  });
 }));
 
 /**
- * Generate manual analysis for a contract (legacy)
- * @route POST /api/analysis/contracts/:contractId
+ * @route GET /api/contracts/analysis/:id
+ * @desc Get analysis results by ID
  */
-router.post("/contracts/:contractId", authenticate(), asyncHandler(async (req: Request, res: Response) => {
-  if (!req.user) {
-    throw ApiError.unauthorized('Authentication required');
+router.get('/contracts/analysis/:id', authenticate(), asyncHandler(async (req: Request, res: Response) => {
+  logger.info(`Fetching analysis with ID: ${req.params.id}`);
+  
+  try {
+    const analysisId = parseInt(req.params.id);
+    
+    if (isNaN(analysisId)) {
+      return res.status(400).json({
+        error: 'Invalid analysis ID',
+      });
+    }
+    
+    const analysis = await aiAnalysisService.getAnalysisById(analysisId);
+    
+    if (!analysis) {
+      return res.status(404).json({
+        error: 'Analysis not found',
+      });
+    }
+    
+    // Check if the user has permission to access this analysis
+    if (req.user && req.user.id !== analysis.userId) {
+      logger.warn(`User ${req.user.id} attempted to access analysis owned by user ${analysis.userId}`);
+      return res.status(403).json({
+        error: 'You do not have permission to access this analysis',
+      });
+    }
+    
+    return res.status(200).json(analysis);
+  } catch (error) {
+    logger.error(`Error fetching analysis: ${error.message}`, error);
+    throw error;
   }
-  
-  const contractId = parseInt(req.params.contractId);
-  
-  if (isNaN(contractId)) {
-    throw ApiError.badRequest('Invalid contract ID');
-  }
-  
-  logger.info(`Generating analysis for contract: ${contractId} by user: ${req.user.id}`);
-  
-  const analysis = await analysisService.generateContractAnalysis(contractId, req.user.id);
-  
-  return res.status(201).json({
-    success: true,
-    data: analysis
-  });
-}));
-
-/**
- * Get AI suggestions for improving a specific clause
- * @route POST /api/analysis/contracts/:contractId/clauses/:clauseId/suggestions
- */
-router.post("/contracts/:contractId/clauses/:clauseId/suggestions", authenticate(), asyncHandler(async (req: Request, res: Response) => {
-  if (!req.user) {
-    throw ApiError.unauthorized('Authentication required');
-  }
-  
-  const contractId = parseInt(req.params.contractId);
-  const clauseId = req.params.clauseId;
-  
-  if (isNaN(contractId)) {
-    throw ApiError.badRequest('Invalid contract ID');
-  }
-  
-  if (!clauseId) {
-    throw ApiError.badRequest('Clause ID is required');
-  }
-  
-  logger.info(`Generating clause improvement suggestions for contract: ${contractId}, clause: ${clauseId}`);
-  
-  const suggestions = await aiAnalysisService.suggestClauseImprovements(contractId, req.user.id, clauseId);
-  
-  return res.json({
-    success: true,
-    data: suggestions
-  });
-}));
-
-/**
- * Identify missing clauses for a contract
- * @route GET /api/analysis/contracts/:contractId/missing-clauses
- */
-router.get("/contracts/:contractId/missing-clauses", authenticate(), asyncHandler(async (req: Request, res: Response) => {
-  if (!req.user) {
-    throw ApiError.unauthorized('Authentication required');
-  }
-  
-  const contractId = parseInt(req.params.contractId);
-  
-  if (isNaN(contractId)) {
-    throw ApiError.badRequest('Invalid contract ID');
-  }
-  
-  logger.info(`Identifying missing clauses for contract: ${contractId}`);
-  
-  const missingClauses = await aiAnalysisService.identifyMissingClauses(contractId, req.user.id);
-  
-  return res.json({
-    success: true,
-    data: missingClauses
-  });
-}));
-
-/**
- * Assess compliance with Indian law
- * @route POST /api/analysis/contracts/:contractId/compliance
- */
-router.post("/contracts/:contractId/compliance", authenticate(), asyncHandler(async (req: Request, res: Response) => {
-  if (!req.user) {
-    throw ApiError.unauthorized('Authentication required');
-  }
-  
-  const contractId = parseInt(req.params.contractId);
-  const { specificLaws } = req.body;
-  
-  if (isNaN(contractId)) {
-    throw ApiError.badRequest('Invalid contract ID');
-  }
-  
-  logger.info(`Assessing legal compliance for contract: ${contractId}`);
-  
-  const compliance = await aiAnalysisService.assessComplianceWithIndianLaw(contractId, req.user.id, specificLaws);
-  
-  return res.json({
-    success: true,
-    data: compliance
-  });
-}));
-
-/**
- * Get analysis for a contract
- * @route GET /api/analysis/contracts/:contractId
- */
-router.get("/contracts/:contractId", authenticate(), asyncHandler(async (req: Request, res: Response) => {
-  if (!req.user) {
-    throw ApiError.unauthorized('Authentication required');
-  }
-  
-  const contractId = parseInt(req.params.contractId);
-  
-  if (isNaN(contractId)) {
-    throw ApiError.badRequest('Invalid contract ID');
-  }
-  
-  logger.info(`Getting analysis for contract: ${contractId}`);
-  
-  const analysis = await analysisService.getContractAnalysisByContractId(contractId);
-  
-  if (!analysis) {
-    throw ApiError.notFound('Analysis not found for this contract');
-  }
-  
-  // Check if user has access to this analysis
-  if (analysis.userId !== req.user.id && req.user.role !== 'admin') {
-    throw ApiError.forbidden('You do not have permission to view this analysis');
-  }
-  
-  return res.json({
-    success: true,
-    data: analysis
-  });
-}));
-
-/**
- * Get analysis by ID
- * @route GET /api/analysis/:id
- */
-router.get("/:id", authenticate(), asyncHandler(async (req: Request, res: Response) => {
-  if (!req.user) {
-    throw ApiError.unauthorized('Authentication required');
-  }
-  
-  const analysisId = parseInt(req.params.id);
-  
-  if (isNaN(analysisId)) {
-    throw ApiError.badRequest('Invalid analysis ID');
-  }
-  
-  logger.info(`Getting analysis: ${analysisId}`);
-  
-  const analysis = await analysisService.getContractAnalysisById(analysisId);
-  
-  if (!analysis) {
-    throw ApiError.notFound('Analysis not found');
-  }
-  
-  // Check if user has access to this analysis
-  if (analysis.userId !== req.user.id && req.user.role !== 'admin') {
-    throw ApiError.forbidden('You do not have permission to view this analysis');
-  }
-  
-  return res.json({
-    success: true,
-    data: analysis
-  });
-}));
-
-/**
- * Get all analyses for authenticated user
- * @route GET /api/analysis
- */
-router.get("/", authenticate(), asyncHandler(async (req: Request, res: Response) => {
-  if (!req.user) {
-    throw ApiError.unauthorized('Authentication required');
-  }
-  
-  logger.info(`Getting all analyses for user: ${req.user.id}`);
-  
-  const analyses = await analysisService.getUserContractAnalyses(req.user.id);
-  
-  return res.json({
-    success: true,
-    data: analyses
-  });
-}));
-
-/**
- * Delete analysis
- * @route DELETE /api/analysis/:id
- */
-router.delete("/:id", authenticate(), asyncHandler(async (req: Request, res: Response) => {
-  if (!req.user) {
-    throw ApiError.unauthorized('Authentication required');
-  }
-  
-  const analysisId = parseInt(req.params.id);
-  
-  if (isNaN(analysisId)) {
-    throw ApiError.badRequest('Invalid analysis ID');
-  }
-  
-  logger.info(`Deleting analysis: ${analysisId}`);
-  
-  // Get analysis to check permissions
-  const analysis = await analysisService.getContractAnalysisById(analysisId);
-  
-  if (!analysis) {
-    throw ApiError.notFound('Analysis not found');
-  }
-  
-  // Check if user has access to this analysis
-  if (analysis.userId !== req.user.id && req.user.role !== 'admin') {
-    throw ApiError.forbidden('You do not have permission to delete this analysis');
-  }
-  
-  await analysisService.deleteContractAnalysis(analysisId);
-  
-  return res.json({
-    success: true,
-    message: 'Analysis deleted successfully'
-  });
 }));
 
 export default router;

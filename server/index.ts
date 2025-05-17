@@ -104,125 +104,93 @@ app.use('/api', apiRoutes);
 
 // Development middleware
 if (process.env.NODE_ENV === 'development') {
-  const path = require('path');
-  const fs = require('fs');
+  const { createProxyMiddleware } = require('http-proxy-middleware');
   
-  // Serve static files from the client folder
-  app.use('/client', (req, res, next) => {
-    const filePath = path.join(process.cwd(), req.path);
+  // Proxy all non-API requests to the Vite dev server
+  const viteProxy = createProxyMiddleware({
+    target: 'http://localhost:5173',
+    changeOrigin: true,
+    ws: true, // Support WebSocket proxy
+    logLevel: 'debug',
     
-    try {
-      if (fs.existsSync(filePath)) {
-        const stat = fs.statSync(filePath);
-        
-        if (stat.isFile()) {
-          logger.info(`Serving static file: ${req.path}`);
-          
-          // Set the correct MIME type based on file extension
-          const ext = path.extname(filePath).toLowerCase();
-          const mimeTypes: Record<string, string> = {
-            '.html': 'text/html',
-            '.js': 'application/javascript',
-            '.jsx': 'application/javascript',
-            '.ts': 'application/javascript',
-            '.tsx': 'application/javascript',
-            '.css': 'text/css',
-            '.json': 'application/json',
-            '.png': 'image/png',
-            '.jpg': 'image/jpeg',
-            '.jpeg': 'image/jpeg',
-            '.gif': 'image/gif',
-            '.svg': 'image/svg+xml',
-          };
-          
-          const contentType = mimeTypes[ext] || 'text/plain';
-          res.setHeader('Content-Type', contentType);
-          
-          const fileStream = fs.createReadStream(filePath);
-          fileStream.pipe(res);
-          return;
-        }
-      }
-    } catch (error) {
-      logger.error(`Error serving static file: ${error}`);
-    }
+    // Don't proxy API or WebSocket routes
+    filter: (pathname, req) => {
+      return !pathname.startsWith('/api') && !pathname.startsWith('/ws');
+    },
     
-    next();
-  });
-  
-  // For all non-API routes, redirect to the Vite dev server
-  app.use('*', (req, res, next) => {
-    // Skip API and WebSocket routes
-    if (req.originalUrl.startsWith('/api') || req.originalUrl.startsWith('/ws')) {
-      return next();
-    }
+    // Add event handlers
+    onProxyReq: (proxyReq, req, res) => {
+      logger.info(`Proxying request to Vite: ${req.originalUrl}`);
+    },
     
-    logger.info(`Serving frontend for path: ${req.originalUrl}`);
-    
-    // For development, create a minimal HTML that bootstraps the React application
-    // and redirects to the Vite dev server
-    res.send(`
-      <!DOCTYPE html>
-      <html lang="en">
-        <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>LexiDraft</title>
-          <style>
-            body {
-              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-              margin: 0;
-              padding: 0;
-              box-sizing: border-box;
-            }
-            
-            .loading-container {
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              justify-content: center;
-              height: 100vh;
-              background-color: #f8f9fa;
-            }
-            
-            .loading-spinner {
-              border: 5px solid #f3f3f3;
-              border-top: 5px solid #3498db;
-              border-radius: 50%;
-              width: 50px;
-              height: 50px;
-              animation: spin 1s linear infinite;
-            }
-            
-            @keyframes spin {
-              0% { transform: rotate(0deg); }
-              100% { transform: rotate(360deg); }
-            }
-            
-            .loading-text {
-              margin-top: 20px;
-              font-size: 18px;
-              color: #333;
-            }
-          </style>
-        </head>
-        <body>
-          <div id="root">
-            <div class="loading-container">
-              <div class="loading-spinner"></div>
-              <div class="loading-text">Loading LexiDraft...</div>
+    onError: (err, req, res) => {
+      logger.error(`Proxy error: ${err.message}`);
+      
+      // Return a custom error page if the Vite server is not running
+      res.writeHead(500, { 'Content-Type': 'text/html' });
+      res.end(`
+        <!DOCTYPE html>
+        <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>LexiDraft - Development Server Error</title>
+            <style>
+              body {
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                background-color: #f8f9fa;
+                text-align: center;
+                padding: 0 20px;
+              }
+              
+              h1 {
+                color: #e74c3c;
+                margin-bottom: 10px;
+              }
+              
+              .message {
+                max-width: 600px;
+                margin-bottom: 20px;
+              }
+              
+              .error {
+                background-color: #f8d7da;
+                color: #721c24;
+                padding: 10px 15px;
+                border-radius: 4px;
+                margin-bottom: 20px;
+                text-align: left;
+                overflow-wrap: break-word;
+                font-family: monospace;
+              }
+            </style>
+          </head>
+          <body>
+            <h1>Development Server Error</h1>
+            <div class="message">
+              <p>Unable to connect to the Vite development server. Make sure it's running on port 5173.</p>
             </div>
-          </div>
-          <script>
-            // Redirect to Vite dev server
-            window.location.href = 'http://localhost:5173' + window.location.pathname;
-          </script>
-        </body>
-      </html>
-    `);
+            <div class="error">
+              <strong>Error:</strong> ${err.message}
+            </div>
+          </body>
+        </html>
+      `);
+    }
   });
   
-  logger.info('Frontend serving middleware active');
+  // Apply the proxy middleware
+  app.use(viteProxy);
+  
+  logger.info('Vite development server proxy initialized');
 }
 
 // Global error handler
