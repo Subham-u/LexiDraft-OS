@@ -13,6 +13,7 @@ import { routes as aiRoutes } from './ai-service/src/routes';
 import { routes as lawyerRoutes } from './lawyer-service/src/routes';
 import { routes as consultationRoutes } from './consultation-service/src/routes';
 import { routes as templateRoutes } from './template-service/src/routes';
+import { swaggerRoutes } from '../shared/routes/swagger';
 import apiRoutes from './api-routes';
 
 const logger = createLogger('services');
@@ -70,6 +71,10 @@ export async function setupServices(app: Express, server: Server) {
   // Mount template service routes
   app.use(SERVICES.template.path, templateRoutes);
   logger.info(`Mounted template service at ${SERVICES.template.path}`);
+  
+  // Mount Swagger API documentation routes
+  app.use('/', swaggerRoutes);
+  logger.info('Mounted Swagger API documentation at /api-docs');
   
   // TODO: Mount other service routes as they are implemented
   // app.use(SERVICES.client.path, clientRoutes);
