@@ -1,32 +1,17 @@
-import express from 'express';
-import { createLogger } from '../../../shared/utils/logger';
+/**
+ * Template service entry point
+ */
 import { config } from './config';
 import { routes } from './routes';
+import { createLogger } from '../../../shared/utils/logger';
 
-const app = express();
-const logger = createLogger('service-name');
+const logger = createLogger('template-service');
 
-app.use(express.json());
-app.use(routes);
+// Export the service configuration and routes
+export {
+  config,
+  routes
+};
 
-// Global error handler
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  const status = err.status || err.statusCode || 500;
-  const message = err.message || 'Internal Server Error';
-  
-  logger.error(`Error: ${message}`, { status, stack: err.stack });
-  
-  res.status(status).json({ 
-    success: false, 
-    message, 
-    status 
-  });
-});
-
-export function startService() {
-  app.listen(config.port, () => {
-    logger.info(`Service running on port ${config.port}`);
-  });
-}
-
-export default app;
+// Log service initialization
+logger.info(`Template service initialized with version ${config.version}`);

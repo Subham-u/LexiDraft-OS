@@ -12,6 +12,7 @@ import { routes as paymentRoutes } from './payment-service/src/routes';
 import { routes as aiRoutes } from './ai-service/src/routes';
 import { routes as lawyerRoutes } from './lawyer-service/src/routes';
 import { routes as consultationRoutes } from './consultation-service/src/routes';
+import { routes as templateRoutes } from './template-service/src/routes';
 import apiRoutes from './api-routes';
 
 const logger = createLogger('services');
@@ -66,8 +67,11 @@ export async function setupServices(app: Express, server: Server) {
   app.use(SERVICES.consultation.path, consultationRoutes);
   logger.info(`Mounted consultation service at ${SERVICES.consultation.path}`);
   
+  // Mount template service routes
+  app.use(SERVICES.template.path, templateRoutes);
+  logger.info(`Mounted template service at ${SERVICES.template.path}`);
+  
   // TODO: Mount other service routes as they are implemented
-  // app.use(SERVICES.template.path, templateRoutes);
   // app.use(SERVICES.client.path, clientRoutes);
   // etc.
   
