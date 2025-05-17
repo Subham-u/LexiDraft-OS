@@ -2,13 +2,19 @@
  * WebSocket client for real-time features
  */
 
-import { getAuthToken } from './auth';
-
 // Event handlers for different message types
 type NotificationHandler = (data: any) => void;
 type ChatMessageHandler = (data: any) => void;
 type TypingIndicatorHandler = (data: { roomId: number, userId: number, isTyping: boolean }) => void;
 type ConnectionStatusHandler = (isConnected: boolean) => void;
+
+// Helper function to get auth token
+function getAuthToken(): string | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+  return localStorage.getItem('lexidraft-auth-token');
+}
 
 // WebSocket client singleton
 class WebSocketClient {

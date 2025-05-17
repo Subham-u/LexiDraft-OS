@@ -1,9 +1,6 @@
-"use client"
-
 import { createContext, useContext, useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/hooks/use-toast'
-import { useAuth } from '@/lib/auth'
 import wsClient from '@/lib/websocket'
 
 // Define notification types
@@ -36,10 +33,26 @@ const NotificationContext = createContext<NotificationContextType>({
 export const useNotifications = () => useContext(NotificationContext)
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuth()
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const [hasInitialized, setHasInitialized] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  
+  // Check authentication status
+  useEffect(() => {
+    const checkAuth = () => {
+      // Simple check if token exists
+      const token = localStorage.getItem('lexidraft-auth-token')
+      setIsAuthenticated(!!token)
+    }
+    
+    checkAuth()
+    window.addEventListener('storage', checkAuth)
+    
+    return () => {
+      window.removeEventListener('storage', checkAuth)
+    }
+  }, [])
   
   // Fetch notifications
   const { data: notificationsData } = useQuery<{
@@ -138,7 +151,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const unreadCount = unreadCountData?.data?.count || 0
   
   return (
-    <NotificationContext.Provider 
+    <NotificationContext.Provider
       value={{ 
         notifications, 
         unreadCount,
