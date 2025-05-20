@@ -102,13 +102,11 @@ import directApiRoutes from './api.routes';
 app.use(directApiRoutes);
 app.use('/api', apiRoutes);
 
-// Import modules
-import { createProxyMiddleware } from 'http-proxy-middleware';
-import path from 'path';
-import fs from 'fs';
-
 // Development middleware
 if (process.env.NODE_ENV === 'development') {
+  // Inline function to create proxy
+  const { createProxyMiddleware } = await import('http-proxy-middleware');
+  
   // Proxy all non-API requests to the Vite dev server
   const viteProxy = createProxyMiddleware({
     target: 'http://localhost:5173',
