@@ -104,94 +104,192 @@ app.use('/api', apiRoutes);
 
 // Development middleware
 if (process.env.NODE_ENV === 'development') {
-  // Inline function to create proxy
-  const { createProxyMiddleware } = await import('http-proxy-middleware');
-  
-  // Proxy all non-API requests to the Vite dev server
-  const viteProxy = createProxyMiddleware({
-    target: 'http://localhost:5173',
-    changeOrigin: true,
-    ws: true, // Support WebSocket proxy
-    logLevel: 'debug',
-    
-    // Don't proxy API or WebSocket routes
-    filter: (pathname, req) => {
-      return !pathname.startsWith('/api') && !pathname.startsWith('/ws');
-    },
-    
-    // Add event handlers
-    onProxyReq: (proxyReq, req, res) => {
-      logger.info(`Proxying request to Vite: ${req.originalUrl}`);
-    },
-    
-    onError: (err, req, res) => {
-      logger.error(`Proxy error: ${err.message}`);
-      
-      // Return a custom error page if the Vite server is not running
-      res.writeHead(500, { 'Content-Type': 'text/html' });
-      res.end(`
-        <!DOCTYPE html>
-        <html lang="en">
-          <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>LexiDraft - Development Server Error</title>
-            <style>
-              body {
-                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-                align-items: center;
-                height: 100vh;
-                background-color: #f8f9fa;
-                text-align: center;
-                padding: 0 20px;
-              }
-              
-              h1 {
-                color: #e74c3c;
-                margin-bottom: 10px;
-              }
-              
-              .message {
-                max-width: 600px;
-                margin-bottom: 20px;
-              }
-              
-              .error {
-                background-color: #f8d7da;
-                color: #721c24;
-                padding: 10px 15px;
-                border-radius: 4px;
-                margin-bottom: 20px;
-                text-align: left;
-                overflow-wrap: break-word;
-                font-family: monospace;
-              }
-            </style>
-          </head>
-          <body>
-            <h1>Development Server Error</h1>
-            <div class="message">
-              <p>Unable to connect to the Vite development server. Make sure it's running on port 5173.</p>
-            </div>
-            <div class="error">
-              <strong>Error:</strong> ${err.message}
-            </div>
-          </body>
-        </html>
-      `);
+  // Serve a simple HTML page with basic LexiDraft frontend for development
+  app.use('*', (req, res, next) => {
+    // Skip API and WebSocket routes
+    if (req.originalUrl.startsWith('/api') || req.originalUrl.startsWith('/ws')) {
+      return next();
     }
+    
+    logger.info(`Serving development frontend for path: ${req.originalUrl}`);
+    
+    // Send a basic HTML page that links to our frontend components
+    res.send(`
+      <!DOCTYPE html>
+      <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>LexiDraft</title>
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+              margin: 0;
+              padding: 0;
+              background-color: #f8f9fa;
+              color: #333;
+            }
+            
+            .container {
+              max-width: 1200px;
+              margin: 0 auto;
+              padding: 2rem;
+            }
+            
+            .header {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              padding: 1rem 0;
+              border-bottom: 1px solid #e2e8f0;
+              margin-bottom: 2rem;
+            }
+            
+            .logo {
+              font-size: 1.5rem;
+              font-weight: bold;
+              color: #4a5568;
+            }
+            
+            .logo span {
+              color: #3182ce;
+            }
+            
+            .features {
+              display: grid;
+              grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+              gap: 2rem;
+              margin-top: 2rem;
+            }
+            
+            .feature-card {
+              background-color: white;
+              border-radius: 8px;
+              padding: 1.5rem;
+              box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+              transition: transform 0.2s;
+            }
+            
+            .feature-card:hover {
+              transform: translateY(-5px);
+            }
+            
+            .feature-title {
+              font-size: 1.25rem;
+              margin-bottom: 1rem;
+              color: #2d3748;
+            }
+            
+            .feature-desc {
+              color: #718096;
+              line-height: 1.6;
+            }
+            
+            .api-section {
+              margin-top: 3rem;
+              background-color: white;
+              border-radius: 8px;
+              padding: 1.5rem;
+              box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            }
+            
+            .api-title {
+              font-size: 1.5rem;
+              margin-bottom: 1rem;
+              color: #2d3748;
+            }
+            
+            .endpoint {
+              background-color: #f7fafc;
+              padding: 1rem;
+              border-radius: 4px;
+              margin-bottom: 1rem;
+              border-left: 4px solid #3182ce;
+            }
+            
+            .endpoint-url {
+              font-family: monospace;
+              font-weight: bold;
+              margin-bottom: 0.5rem;
+              color: #4a5568;
+            }
+            
+            .endpoint-desc {
+              color: #718096;
+            }
+            
+            .footer {
+              margin-top: 3rem;
+              text-align: center;
+              padding: 1rem 0;
+              color: #718096;
+              font-size: 0.875rem;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <div class="logo">Lexi<span>Draft</span></div>
+            </div>
+            
+            <div>
+              <h1>LexiDraft Development Server</h1>
+              <p>This is the development environment for LexiDraft, an AI-powered legal contract platform.</p>
+            </div>
+            
+            <div class="features">
+              <div class="feature-card">
+                <h2 class="feature-title">AI Contract Analysis</h2>
+                <p class="feature-desc">
+                  Use OpenAI-powered analysis to review contracts for issues, missing clauses, and compliance problems.
+                </p>
+              </div>
+              
+              <div class="feature-card">
+                <h2 class="feature-title">Real-time Notifications</h2>
+                <p class="feature-desc">
+                  WebSocket-based notification system for instant updates on contract changes, comments, and reviews.
+                </p>
+              </div>
+              
+              <div class="feature-card">
+                <h2 class="feature-title">Secure Chat</h2>
+                <p class="feature-desc">
+                  Real-time chat functionality for client-lawyer communication and team collaboration.
+                </p>
+              </div>
+            </div>
+            
+            <div class="api-section">
+              <h2 class="api-title">Available API Endpoints</h2>
+              
+              <div class="endpoint">
+                <div class="endpoint-url">POST /api/contracts/analysis</div>
+                <div class="endpoint-desc">Analyze a contract for issues, risks, and improvements</div>
+              </div>
+              
+              <div class="endpoint">
+                <div class="endpoint-url">GET /api/contracts/analysis/:id</div>
+                <div class="endpoint-desc">Retrieve analysis results by ID</div>
+              </div>
+              
+              <div class="endpoint">
+                <div class="endpoint-url">WebSocket /ws</div>
+                <div class="endpoint-desc">Real-time notifications and chat functionality</div>
+              </div>
+            </div>
+            
+            <div class="footer">
+              &copy; ${new Date().getFullYear()} LexiDraft. All rights reserved.
+            </div>
+          </div>
+        </body>
+      </html>
+    `);
   });
   
-  // Apply the proxy middleware
-  app.use(viteProxy);
-  
-  logger.info('Vite development server proxy initialized');
+  logger.info('Development frontend serving middleware active');
 }
 
 // Global error handler
