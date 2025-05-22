@@ -23,7 +23,7 @@ export default function Dashboard() {
   
   return (
     <DashboardLayout>
-      <div className="px-4 py-6 sm:px-6 md:px-8 relative">
+      <div className="relative">
         {/* <DashboardHeader /> */}
         <QuickActions />
         <Stats />

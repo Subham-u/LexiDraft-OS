@@ -7,7 +7,10 @@ import OpenAI from 'openai';
 import { db } from '../db';
 import { contractAnalyses, contracts } from '@shared/schema';
 import { eq } from 'drizzle-orm';
-import { logger } from '../utils/logger';
+import { createLogger } from '../utils/logger';
+
+// Initialize logger
+const logger = createLogger('ai-analysis');
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -123,7 +126,7 @@ export class AIAnalysisService {
     try {
       const [analysis] = await db.select().from(contractAnalyses).where(eq(contractAnalyses.id, id));
       return analysis;
-    } catch (error) {
+    } catch (error:any) {
       logger.error(`Error getting analysis with ID ${id}: ${error.message}`, error);
       throw new Error(`Failed to get analysis: ${error.message}`);
     }
@@ -173,7 +176,7 @@ export class AIAnalysisService {
       logger.info(`Completed ${request.analysisType} analysis for contract ${request.contractId}`);
       
       return results;
-    } catch (error) {
+    } catch (error:any) {
       logger.error(`Error running analysis: ${error.message}`, error);
       
       // Update the analysis record with error
@@ -368,7 +371,7 @@ export class AIAnalysisService {
       }
       
       return analysisResults;
-    } catch (error) {
+    } catch (error:any) {
       logger.error(`Error in compliance check: ${error.message}`, error);
       throw new Error(`Failed to check compliance: ${error.message}`);
     }

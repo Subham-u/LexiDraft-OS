@@ -25,16 +25,21 @@ const logger = createLogger('adapter-routes');
  * Get recent contracts 
  * @route GET /api/contracts/recent
  */
-router.get("/contracts/recent", authenticate(), asyncHandler(async (req: Request, res: Response) => {
-  logger.info(`[Adapter] Getting recent contracts for user: ${req.user?.id}`);
+router.get("/contracts/recent", authenticate, asyncHandler(async (req: Request, res: Response) => {
+  logger.info(`[Adapter] Getting recent contracts for user: ${req.user?.uid}`);
   
   // Get limit from query params or default to 5
   const limit = req.query.limit ? parseInt(req.query.limit as string) : 5;
   
   if (req.user) {
     // Get all contracts for user
-    const contracts = await contractService.getContractsByUserId(req.user.id);
-    
+    const contracts = await contractService.getContractsByUserId(req.user.uid);
+    if(contracts.length === 0){
+      return res.json({
+        success: true,
+        data: []
+      });
+    }
     // Sort by createdAt/updatedAt and limit
     const recentContracts = contracts
       .sort((a, b) => {
@@ -68,7 +73,7 @@ router.get("/contracts/recent", authenticate(), asyncHandler(async (req: Request
  * Get contract analysis by contract ID
  * @route GET /api/contracts/analysis/:id
  */
-router.get("/contracts/analysis/:id", authenticate(), asyncHandler(async (req: Request, res: Response) => {
+router.get("/contracts/analysis/:id", authenticate, asyncHandler(async (req: Request, res: Response) => {
   const contractId = parseInt(req.params.id);
   
   if (isNaN(contractId)) {
@@ -89,12 +94,12 @@ router.get("/contracts/analysis/:id", authenticate(), asyncHandler(async (req: R
  * Get user notifications
  * @route GET /api/notifications
  */
-router.get("/notifications", authenticate(), asyncHandler(async (req: Request, res: Response) => {
+router.get("/notifications", authenticate, asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) {
     throw ApiError.unauthorized('Authentication required');
   }
   
-  logger.info(`[Adapter] Getting notifications for user: ${req.user.id}`);
+  logger.info(`[Adapter] Getting notifications for user: ${req.user.uid}`);
   
   // Return mock data for now
   return res.json(mockNotifications);
@@ -104,12 +109,12 @@ router.get("/notifications", authenticate(), asyncHandler(async (req: Request, r
  * Get unread notification count
  * @route GET /api/notifications/unread
  */
-router.get("/notifications/unread", authenticate(), asyncHandler(async (req: Request, res: Response) => {
+router.get("/notifications/unread", authenticate, asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) {
     throw ApiError.unauthorized('Authentication required');
   }
   
-  logger.info(`[Adapter] Getting unread notification count for user: ${req.user.id}`);
+  logger.info(`[Adapter] Getting unread notification count for user: ${req.user.uid}`);
   
   // Return mock data for now
   return res.json(mockUnreadCount);
@@ -119,12 +124,12 @@ router.get("/notifications/unread", authenticate(), asyncHandler(async (req: Req
  * Get user chat rooms
  * @route GET /api/chat/rooms
  */
-router.get("/chat/rooms", authenticate(), asyncHandler(async (req: Request, res: Response) => {
+router.get("/chat/rooms", authenticate, asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) {
     throw ApiError.unauthorized('Authentication required');
   }
   
-  logger.info(`[Adapter] Getting chat rooms for user: ${req.user.id}`);
+  logger.info(`[Adapter] Getting chat rooms for user: ${req.user.uid}`);
   
   // Return mock data for now
   return res.json(mockChatRooms);
@@ -134,7 +139,7 @@ router.get("/chat/rooms", authenticate(), asyncHandler(async (req: Request, res:
  * Get chat messages for a room
  * @route GET /api/chat/rooms/:id/messages
  */
-router.get("/chat/rooms/:id/messages", authenticate(), asyncHandler(async (req: Request, res: Response) => {
+router.get("/chat/rooms/:id/messages", authenticate, asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) {
     throw ApiError.unauthorized('Authentication required');
   }

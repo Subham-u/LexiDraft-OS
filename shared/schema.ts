@@ -103,13 +103,18 @@ export const verificationStatusEnum = pgEnum('verification_status', [
 
 // Users
 export const users = pgTable('users', {
-  id: serial('id').primaryKey(),
-  uid: text('uid').notNull().unique(),
+  uid: text('uid').notNull().primaryKey(),
   username: text('username').notNull().unique(),
   email: text('email').notNull().unique(),
+  password: text('password').notNull(),
   fullName: text('full_name').notNull(),
   role: text('role'),
   avatar: text('avatar'),
+  isVerified: boolean('is_verified').default(false),
+  verificationToken: text('verification_token'),
+  verificationTokenExpiry: timestamp('verification_token_expiry'),
+  resetToken: text('reset_token'),
+  resetTokenExpiry: timestamp('reset_token_expiry'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -122,7 +127,7 @@ export const contracts = pgTable('contracts', {
   content: text('content').notNull(),
   status: contractStatusEnum('status').default('draft').notNull(),
   jurisdiction: text('jurisdiction').notNull(),
-  userId: integer('user_id').notNull().references(() => users.id),
+  userId: text('user_id').notNull().references(() => users.uid),
   pdfUrl: text('pdf_url'),
   parties: json('parties').$type<Party[]>().notNull(),
   clauses: json('clauses').$type<Clause[]>().notNull(),
@@ -138,7 +143,7 @@ export const templates = pgTable('templates', {
   content: text('content').notNull(),
   description: text('description').notNull(),
   isPublic: boolean('is_public').default(false).notNull(),
-  userId: integer('user_id').references(() => users.id),
+  userId: text('user_id').references(() => users.uid),
   clauses: json('clauses').$type<Clause[]>().notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -152,7 +157,7 @@ export const clients = pgTable('clients', {
   phone: text('phone'),
   company: text('company'),
   address: text('address'),
-  userId: integer('user_id').notNull().references(() => users.id),
+  userId: text('user_id').notNull().references(() => users.uid),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -165,7 +170,7 @@ export const clauses = pgTable('clauses', {
   type: text('type').notNull(),
   description: text('description'),
   isPublic: boolean('is_public').default(false).notNull(),
-  userId: integer('user_id').references(() => users.id),
+  userId: text('user_id').references(() => users.uid),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -173,7 +178,7 @@ export const clauses = pgTable('clauses', {
 // AI Conversations
 export const aiConversations = pgTable('ai_conversations', {
   id: serial('id').primaryKey(),
-  userId: integer('user_id').notNull().references(() => users.id),
+  userId: text('user_id').notNull().references(() => users.uid),
   messages: json('messages').$type<AIMessage[]>().notNull(),
   context: text('context'),
   contractId: integer('contract_id').references(() => contracts.id),
@@ -184,7 +189,7 @@ export const aiConversations = pgTable('ai_conversations', {
 // Lawyer profile schema
 export const lawyers = pgTable('lawyers', {
   id: serial('id').primaryKey(),
-  userId: integer('user_id').references(() => users.id).notNull(),
+  userId: text('user_id').references(() => users.uid).notNull(),
   name: text('name').notNull(),
   profilePhoto: text('profile_photo'),
   about: text('about'),
@@ -219,7 +224,7 @@ export const lawyers = pgTable('lawyers', {
 export const lawyerReviews = pgTable('lawyer_reviews', {
   id: serial('id').primaryKey(),
   lawyerId: integer('lawyer_id').references(() => lawyers.id).notNull(),
-  userId: integer('user_id').references(() => users.id).notNull(),
+  userId: text('user_id').references(() => users.uid).notNull(),
   rating: integer('rating').notNull(),
   comment: text('comment'),
   consultationId: integer('consultation_id'), // Optional reference to a specific consultation
@@ -230,7 +235,7 @@ export const lawyerReviews = pgTable('lawyer_reviews', {
 export const consultations = pgTable('consultations', {
   id: serial('id').primaryKey(),
   lawyerId: integer('lawyer_id').references(() => lawyers.id).notNull(),
-  userId: integer('user_id').references(() => users.id).notNull(),
+  userId: text('user_id').references(() => users.uid).notNull(),
   title: text('title').notNull(),
   description: text('description'),
   date: timestamp('date').notNull(),
@@ -256,7 +261,7 @@ export const sharedDocuments = pgTable('shared_documents', {
   consultationId: integer('consultation_id').references(() => consultations.id).notNull(),
   name: text('name').notNull(),
   fileUrl: text('file_url').notNull(),
-  uploadedBy: integer('uploaded_by').references(() => users.id).notNull(),
+  uploadedBy: text('uploaded_by').references(() => users.uid).notNull(),
   type: text('type'),
   size: integer('size'),
   createdAt: timestamp('created_at').defaultNow()
@@ -265,7 +270,7 @@ export const sharedDocuments = pgTable('shared_documents', {
 // Payments table
 export const payments = pgTable('payments', {
   id: serial('id').primaryKey(),
-  userId: integer('user_id').references(() => users.id).notNull(),
+  userId: text('user_id').references(() => users.uid).notNull(),
   amount: integer('amount').notNull(), // in paise (1/100th of INR)
   currency: text('currency').default('INR').notNull(),
   status: paymentStatusEnum('status').default('pending').notNull(),
@@ -283,7 +288,7 @@ export const payments = pgTable('payments', {
 // Subscriptions table
 export const subscriptions = pgTable('subscriptions', {
   id: serial('id').primaryKey(),
-  userId: integer('user_id').references(() => users.id).notNull(),
+  userId: text('user_id').references(() => users.uid).notNull(),
   plan: subscriptionPlanEnum('plan').notNull(),
   status: subscriptionStatusEnum('status').default('active').notNull(),
   startDate: timestamp('start_date').notNull(),
@@ -302,7 +307,7 @@ export const subscriptions = pgTable('subscriptions', {
 export const contractAnalyses = pgTable('contract_analyses', {
   id: serial('id').primaryKey(),
   contractId: integer('contract_id').references(() => contracts.id).notNull(),
-  userId: integer('user_id').references(() => users.id).notNull(),
+  userId: text('user_id').references(() => users.uid).notNull(),
   riskScore: integer('risk_score'),
   completeness: integer('completeness'),
   issues: json('issues').array(),
@@ -318,19 +323,19 @@ export const contractAnalyses = pgTable('contract_analyses', {
 // Document Versions table
 export const documentVersions = pgTable('document_versions', {
   id: serial('id').primaryKey(),
-  documentId: integer('document_id').notNull(), // References either contracts.id or shared_documents.id
-  documentType: text('document_type').notNull(), // 'contract' or 'shared_document'
+  documentId: integer('document_id').notNull(),
+  documentType: text('document_type').notNull(),
   version: integer('version').notNull(),
   content: text('content').notNull(),
   changes: json('changes'),
-  createdBy: integer('created_by').references(() => users.id).notNull(),
+  createdBy: text('created_by').references(() => users.uid).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull()
 });
 
 // Notifications table
 export const notifications = pgTable('notifications', {
   id: serial('id').primaryKey(),
-  userId: integer('user_id').references(() => users.id).notNull(),
+  userId: text('user_id').references(() => users.uid).notNull(),
   type: text('type').notNull(),
   title: text('title').notNull(),
   message: text('message').notNull(),
@@ -345,8 +350,8 @@ export const notifications = pgTable('notifications', {
 export const chatRooms = pgTable('chat_rooms', {
   id: serial('id').primaryKey(),
   name: text('name'),
-  type: text('type').notNull(), // 'direct', 'consultation', 'contract'
-  participants: integer('participants').array().notNull(),
+  type: text('type').notNull(),
+  participants: text('participants').array().notNull(),
   lastMessageAt: timestamp('last_message_at'),
   metadata: json('metadata'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -357,7 +362,7 @@ export const chatRooms = pgTable('chat_rooms', {
 export const chatMessages = pgTable('chat_messages', {
   id: serial('id').primaryKey(),
   roomId: integer('room_id').references(() => chatRooms.id).notNull(),
-  senderId: integer('sender_id').references(() => users.id).notNull(),
+  senderId: text('sender_id').references(() => users.uid).notNull(),
   content: text('content').notNull(),
   attachments: json('attachments').array(),
   read: boolean('read').default(false).notNull(),
@@ -388,7 +393,11 @@ export type AIMessage = {
 };
 
 // Insert schemas
-export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertUserSchema = createInsertSchema(users).omit({ 
+  createdAt: true, 
+  updatedAt: true,
+  uid: true // Make uid optional since we generate it
+});
 export const insertContractSchema = createInsertSchema(contracts).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertTemplateSchema = createInsertSchema(templates).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertClientSchema = createInsertSchema(clients).omit({ id: true, createdAt: true, updatedAt: true });
@@ -463,3 +472,38 @@ export type InsertChatRoom = z.infer<typeof insertChatRoomSchema>;
 
 export type ChatMessage = typeof chatMessages.$inferSelect;
 export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
+
+// Permissions table
+export const permissions = pgTable('permissions', {
+  id: serial('id').primaryKey(),
+  controller: text('controller').notNull(),
+  action: text('action').notNull(),
+  enabled: boolean('enabled').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull()
+});
+
+// Roles table
+export const roles = pgTable('roles', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull().unique(),
+  description: text('description'),
+  permissions: json('permissions').$type<Permission[]>().notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull()
+});
+
+// Permission type
+export type Permission = {
+  controller: string;
+  action: string;
+  enabled: boolean;
+};
+
+// Role type
+export type Role = typeof roles.$inferSelect;
+export type InsertRole = z.infer<typeof insertRoleSchema>;
+
+// Insert schemas
+export const insertPermissionSchema = createInsertSchema(permissions).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertRoleSchema = createInsertSchema(roles).omit({ id: true, createdAt: true, updatedAt: true });

@@ -15,7 +15,7 @@ const logger = createLogger('contract-routes');
  * Get all contracts
  * @route GET /api/contracts
  */
-router.get("/", authenticate(), asyncHandler(async (req: Request, res: Response) => {
+router.get("/", authenticate, asyncHandler(async (req: Request, res: Response) => {
   logger.info(`Getting all contracts for user: ${req.user?.id}`);
   
   // If user is authenticated, get their contracts
@@ -52,7 +52,7 @@ router.get("/", authenticate(), asyncHandler(async (req: Request, res: Response)
  * Get recent contracts
  * @route GET /api/contracts/recent
  */
-router.get("/recent", authenticate(), asyncHandler(async (req: Request, res: Response) => {
+router.get("/recent", authenticate, asyncHandler(async (req: Request, res: Response) => {
   logger.info(`Getting recent contracts for user: ${req.user?.id}`);
   
   const limit = req.query.limit ? parseInt(req.query.limit as string) : 5;
@@ -79,7 +79,7 @@ router.get("/recent", authenticate(), asyncHandler(async (req: Request, res: Res
  * Get contract by ID
  * @route GET /api/contracts/:id
  */
-router.get("/:id", authenticate(), asyncHandler(async (req: Request, res: Response) => {
+router.get("/:id", authenticate, asyncHandler(async (req: Request, res: Response) => {
   const contractId = parseInt(req.params.id);
   
   if (isNaN(contractId)) {
@@ -124,7 +124,7 @@ router.get("/:id", authenticate(), asyncHandler(async (req: Request, res: Respon
  * Create a new contract
  * @route POST /api/contracts
  */
-router.post("/", authenticate(), asyncHandler(async (req: Request, res: Response) => {
+router.post("/", authenticate, asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) {
     throw ApiError.unauthorized('Authentication required');
   }
@@ -153,7 +153,7 @@ router.post("/", authenticate(), asyncHandler(async (req: Request, res: Response
  * Update an existing contract
  * @route PATCH /api/contracts/:id
  */
-router.patch("/:id", authenticate(), asyncHandler(async (req: Request, res: Response) => {
+router.patch("/:id", authenticate, asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) {
     throw ApiError.unauthorized('Authentication required');
   }
@@ -190,7 +190,7 @@ router.patch("/:id", authenticate(), asyncHandler(async (req: Request, res: Resp
  * Delete a contract
  * @route DELETE /api/contracts/:id
  */
-router.delete("/:id", authenticate(), asyncHandler(async (req: Request, res: Response) => {
+router.delete("/:id", authenticate, asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) {
     throw ApiError.unauthorized('Authentication required');
   }
@@ -227,7 +227,7 @@ router.delete("/:id", authenticate(), asyncHandler(async (req: Request, res: Res
  * Update contract status
  * @route PATCH /api/contracts/:id/status
  */
-router.patch("/:id/status", authenticate(), asyncHandler(async (req: Request, res: Response) => {
+router.patch("/:id/status", authenticate, asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) {
     throw ApiError.unauthorized('Authentication required');
   }

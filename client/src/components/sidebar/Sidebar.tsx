@@ -82,7 +82,7 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="hidden border-r border-gray-200 bg-white shadow-sm md:flex md:w-64 md:flex-col h-screen">
+    <aside className="hidden border-r border-gray-200 bg-white shadow-sm md:flex md:w-64 md:flex-col h-screen w-full">
       {/* Logo and branding */}
       <div className="border-b border-gray-200 p-4 bg-gradient-to-r from-primary-50 to-white">
         <div className="flex items-center">

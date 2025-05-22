@@ -24,7 +24,7 @@ export async function getAllContracts(): Promise<Contract[]> {
 /**
  * Get contracts by user ID
  */
-export async function getContractsByUserId(userId: number): Promise<Contract[]> {
+export async function getContractsByUserId(userId: string): Promise<Contract[]> {
   try {
     return await db
       .select()

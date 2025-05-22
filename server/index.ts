@@ -10,6 +10,10 @@ import { createLogger } from './utils/logger';
 import { errorHandler } from './middleware/error';
 import apiRoutes from './routes';
 import * as websocketService from './services/websocket.service';
+import adapterRoutes from "./routes/adapter.routes";
+import analysisRoutes from "./routes/analysis.routes";
+import authRoutes from "./routes/auth.routes";
+import userRoutes from "./routes/user.routes";
 
 // Initialize logger
 const logger = createLogger('server');
@@ -65,7 +69,10 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   res.setHeader('X-Frame-Options', 'DENY');
   next();
 });
-
+app.use('/api', adapterRoutes);
+app.use('/api', analysisRoutes);
+app.use('/api',authRoutes);
+app.use('/api',userRoutes);
 // Request logging middleware
 app.use((req: Request, res: Response, next: NextFunction) => {
   logger.info(`${req.method} ${req.path}`);
@@ -96,10 +103,10 @@ app.get('/api/ws/status', (req: Request, res: Response) => {
 });
 
 // Import our direct API routes
-import directApiRoutes from './api.routes';
+// import directApiRoutes from './api.routes';
 
 // Mount API routes
-app.use(directApiRoutes);
+// app.use(directApiRoutes);
 app.use('/api', apiRoutes);
 
 // Development middleware

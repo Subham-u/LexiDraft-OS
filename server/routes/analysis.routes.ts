@@ -6,7 +6,8 @@ import { Router, Request, Response } from 'express';
 import { aiAnalysisService, AnalysisRequest } from '../services/ai-analysis.service';
 import { authenticate } from '../middleware/auth';
 import { asyncHandler } from '../middleware/error';
-import { logger } from '../utils/logger';
+import { createLogger } from '../utils/logger';
+const logger = createLogger('analysis');
 import { z } from 'zod';
 
 const router = Router();
@@ -14,7 +15,7 @@ const router = Router();
 // Validation schema for analysis request
 const analysisRequestSchema = z.object({
   contractId: z.number(),
-  userId: z.number(),
+  userId: z.string(),
   analysisType: z.enum(['full', 'clauses', 'missing', 'compliance']),
   options: z.object({
     jurisdiction: z.string().optional(),
@@ -27,7 +28,7 @@ const analysisRequestSchema = z.object({
  * @route POST /api/contracts/analysis
  * @desc Request a contract analysis
  */
-router.post('/contracts/analysis', authenticate(), asyncHandler(async (req: Request, res: Response) => {
+router.post('/contracts/analysis', authenticate, asyncHandler(async (req: Request, res: Response) => {
   logger.info('Received contract analysis request');
   
   try {
@@ -35,9 +36,9 @@ router.post('/contracts/analysis', authenticate(), asyncHandler(async (req: Requ
     const validatedData = analysisRequestSchema.parse(req.body);
     
     // Ensure the user ID matches the authenticated user
-    if (req.user && req.user.id !== validatedData.userId) {
-      logger.warn(`User ${req.user.id} attempted to analyze contract for user ${validatedData.userId}`);
-      validatedData.userId = req.user.id;
+    if (req.user && req.user.uid !== validatedData.userId) {
+      logger.warn(`User ${req.user.uid} attempted to analyze contract for user ${validatedData.userId}`);
+      validatedData.userId = req.user.uid;
     }
     
     // Request analysis
@@ -69,7 +70,7 @@ router.post('/contracts/analysis', authenticate(), asyncHandler(async (req: Requ
  * @route GET /api/contracts/analysis/:id
  * @desc Get analysis results by ID
  */
-router.get('/contracts/analysis/:id', authenticate(), asyncHandler(async (req: Request, res: Response) => {
+router.get('/contracts/analysis/:id', authenticate, asyncHandler(async (req: Request, res: Response) => {
   logger.info(`Fetching analysis with ID: ${req.params.id}`);
   
   try {
@@ -90,8 +91,8 @@ router.get('/contracts/analysis/:id', authenticate(), asyncHandler(async (req: R
     }
     
     // Check if the user has permission to access this analysis
-    if (req.user && req.user.id !== analysis.userId) {
-      logger.warn(`User ${req.user.id} attempted to access analysis owned by user ${analysis.userId}`);
+    if (req.user && req.user.uid !== analysis.userId) {
+      logger.warn(`User ${req.user.uid} attempted to access analysis owned by user ${analysis.userId}`);
       return res.status(403).json({
         error: 'You do not have permission to access this analysis',
       });

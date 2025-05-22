@@ -3,6 +3,9 @@
  */
 import express, { Router } from 'express';
 import { createLogger } from '../utils/logger';
+import authRoutes from './auth.routes';
+import userRoutes from './user.routes';
+import roleRoutes from './role.routes';
 
 // Create router
 const router: Router = express.Router();
@@ -22,7 +25,6 @@ try {
 
 // Try to import and register core routes
 try {
-  const authRoutes = require('./auth.routes').default;
   const contractRoutes = require('./contract.routes').default;
   const templateRoutes = require('./template.routes').default;
   const adminRoutes = require('./admin.routes').default;
@@ -77,6 +79,10 @@ try {
 } catch (error) {
   logger.warn('Chat routes not available', error);
 }
+
+// Mount routes
+router.use(userRoutes);
+router.use(roleRoutes);
 
 logger.info('API routes registration completed');
 

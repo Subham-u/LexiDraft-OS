@@ -9,8 +9,12 @@ import {
   mockChatRooms,
   mockChatMessages
 } from './mock-responses';
+import userRoutes from './user.routes';
 
 const router: Router = express.Router();
+
+// User management routes
+router.use(userRoutes);
 
 // Contract analysis
 router.get('/contracts/analysis/:id', (req: Request, res: Response) => {
