@@ -2,10 +2,11 @@ import { Request, Response, NextFunction } from 'express';
 import { AnyZodObject, ZodError } from 'zod';
 import { ApiError } from './error';
 
-export const validateRequest = (schema: AnyZodObject) => {
+export const validateRequest = (schema: AnyZodObject | { schema: AnyZodObject }) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      await schema.parseAsync({
+      const zodSchema = 'schema' in schema ? schema.schema : schema;
+      await zodSchema.parseAsync({
         body: req.body,
         query: req.query,
         params: req.params,

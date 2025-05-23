@@ -23,7 +23,7 @@ router.post('/email-template',
         req.body.recipientEmail
       );
       res.json({ success: true, template });
-    } catch (error) {
+    } catch (error:any) {
       res.status(400).json({ success: false, error: error.message });
     }
   }

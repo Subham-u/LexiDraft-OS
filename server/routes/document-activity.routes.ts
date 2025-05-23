@@ -25,7 +25,7 @@ router.post('/',
         metadata: req.body.metadata
       });
       res.json({ success: true, activity });
-    } catch (error) {
+    } catch (error:any) {
       res.status(400).json({ success: false, error: error.message });
     }
   }

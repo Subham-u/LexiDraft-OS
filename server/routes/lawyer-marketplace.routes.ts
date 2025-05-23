@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { lawyerMarketplaceService } from '../services/lawyer-marketplace.service';
 import { authenticate } from '../middleware/auth';
 import { validateRequest } from '../middleware/validation';
@@ -9,7 +9,7 @@ const router = Router();
 // Register as a lawyer
 router.post('/register',
   authenticate,
-  validateRequest({
+  validateRequest(z.object({
     body: z.object({
       name: z.string(),
       profilePhoto: z.string().optional(),
@@ -27,15 +27,39 @@ router.post('/register',
       hourlyRate: z.number(),
       consultationModes: z.array(z.string()).optional()
     })
-  }),
-  async (req, res) => {
+  })),
+  async (req: Request, res: Response) => {
     try {
+      const userId = (req as any).user?.uid;
+      const userRole = (req as any).user?.role;
+
+      if (!userId) {
+        return res.status(401).json({ success: false, error: 'User not authenticated' });
+      }
+
+      // Check if user is already a lawyer
+      const existingProfile = await lawyerMarketplaceService.getLawyerProfile(userId);
+      if (existingProfile) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'User is already registered as a lawyer' 
+        });
+      }
+
+      // Only allow users with 'user' role to register as lawyers
+      if (userRole !== 'user') {
+        return res.status(403).json({ 
+          success: false, 
+          error: 'Only regular users can register as lawyers' 
+        });
+      }
+
       const lawyer = await lawyerMarketplaceService.registerLawyer({
         ...req.body,
-        userId: req.user.uid
+        userId
       });
       res.json({ success: true, lawyer });
-    } catch (error) {
+    } catch (error: any) {
       res.status(400).json({ success: false, error: error.message });
     }
   }
@@ -44,11 +68,16 @@ router.post('/register',
 // Get lawyer profile
 router.get('/profile',
   authenticate,
-  async (req, res) => {
+  async (req: Request, res: Response) => {
     try {
-      const profile = await lawyerMarketplaceService.getLawyerProfile(req.user.uid);
+      const userId = (req as any).user?.uid;
+      if (!userId) {
+        return res.status(401).json({ success: false, error: 'User not authenticated' });
+      }
+
+      const profile = await lawyerMarketplaceService.getLawyerProfile(userId);
       res.json({ success: true, profile });
-    } catch (error) {
+    } catch (error: any) {
       res.status(400).json({ success: false, error: error.message });
     }
   }
@@ -58,7 +87,7 @@ router.get('/profile',
 router.put('/profile',
   authenticate,
   validateRequest({
-    body: z.object({
+    schema: z.object({
       name: z.string().optional(),
       profilePhoto: z.string().optional(),
       about: z.string().optional(),
@@ -76,14 +105,19 @@ router.put('/profile',
       consultationModes: z.array(z.string()).optional()
     })
   }),
-  async (req, res) => {
+  async (req: Request, res: Response) => {
     try {
+      const userId = (req as any).user?.uid;
+      if (!userId) {
+        return res.status(401).json({ success: false, error: 'User not authenticated' });
+      }
+
       const profile = await lawyerMarketplaceService.updateLawyerProfile(
-        req.user.uid,
+        userId,
         req.body
       );
       res.json({ success: true, profile });
-    } catch (error) {
+    } catch (error: any) {
       res.status(400).json({ success: false, error: error.message });
     }
   }
@@ -92,18 +126,18 @@ router.put('/profile',
 // Get all lawyers
 router.get('/',
   validateRequest({
-    query: z.object({
+    schema: z.object({
       practiceArea: z.string().optional(),
       location: z.string().optional(),
       minExperience: z.number().optional(),
       maxHourlyRate: z.number().optional()
     })
   }),
-  async (req, res) => {
+  async (req: Request, res: Response) => {
     try {
       const lawyers = await lawyerMarketplaceService.getAllLawyers(req.query);
       res.json({ success: true, lawyers });
-    } catch (error) {
+    } catch (error: any) {
       res.status(400).json({ success: false, error: error.message });
     }
   }
@@ -111,13 +145,13 @@ router.get('/',
 
 // Get specific lawyer details
 router.get('/:id',
-  async (req, res) => {
+  async (req: Request, res: Response) => {
     try {
       const lawyer = await lawyerMarketplaceService.getLawyerById(
         parseInt(req.params.id)
       );
       res.json({ success: true, lawyer });
-    } catch (error) {
+    } catch (error: any) {
       res.status(400).json({ success: false, error: error.message });
     }
   }
@@ -127,21 +161,26 @@ router.get('/:id',
 router.post('/availability',
   authenticate,
   validateRequest({
-    body: z.array(z.object({
+    schema: z.array(z.object({
       day: z.string(),
       startTime: z.string(),
       endTime: z.string(),
       isAvailable: z.boolean()
     }))
   }),
-  async (req, res) => {
+  async (req: Request, res: Response) => {
     try {
+      const userId = (req as any).user?.uid;
+      if (!userId) {
+        return res.status(401).json({ success: false, error: 'User not authenticated' });
+      }
+
       const availability = await lawyerMarketplaceService.setAvailability(
-        req.user.uid,
+        userId,
         req.body
       );
       res.json({ success: true, availability });
-    } catch (error) {
+    } catch (error: any) {
       res.status(400).json({ success: false, error: error.message });
     }
   }
@@ -150,13 +189,18 @@ router.post('/availability',
 // Get own availability
 router.get('/availability',
   authenticate,
-  async (req, res) => {
+  async (req: Request, res: Response) => {
     try {
+      const userId = (req as any).user?.uid;
+      if (!userId) {
+        return res.status(401).json({ success: false, error: 'User not authenticated' });
+      }
+
       const availability = await lawyerMarketplaceService.getAvailability(
-        req.user.uid
+        userId
       );
       res.json({ success: true, availability });
-    } catch (error) {
+    } catch (error: any) {
       res.status(400).json({ success: false, error: error.message });
     }
   }
@@ -164,13 +208,13 @@ router.get('/availability',
 
 // Get lawyer's availability
 router.get('/:id/availability',
-  async (req, res) => {
+  async (req: Request, res: Response) => {
     try {
       const availability = await lawyerMarketplaceService.getLawyerAvailability(
         parseInt(req.params.id)
       );
       res.json({ success: true, availability });
-    } catch (error) {
+    } catch (error: any) {
       res.status(400).json({ success: false, error: error.message });
     }
   }
@@ -180,21 +224,26 @@ router.get('/:id/availability',
 router.put('/availability/:id',
   authenticate,
   validateRequest({
-    body: z.object({
+    schema: z.object({
       startTime: z.string().optional(),
       endTime: z.string().optional(),
       isAvailable: z.boolean().optional()
     })
   }),
-  async (req, res) => {
+  async (req: Request, res: Response) => {
     try {
+      const userId = (req as any).user?.uid;
+      if (!userId) {
+        return res.status(401).json({ success: false, error: 'User not authenticated' });
+      }
+
       const availability = await lawyerMarketplaceService.updateAvailabilitySlot(
-        req.user.uid,
+        userId,
         req.params.id,
         req.body
       );
       res.json({ success: true, availability });
-    } catch (error) {
+    } catch (error: any) {
       res.status(400).json({ success: false, error: error.message });
     }
   }
@@ -203,14 +252,19 @@ router.put('/availability/:id',
 // Delete availability slot
 router.delete('/availability/:id',
   authenticate,
-  async (req, res) => {
+  async (req: Request, res: Response) => {
     try {
+      const userId = (req as any).user?.uid;
+      if (!userId) {
+        return res.status(401).json({ success: false, error: 'User not authenticated' });
+      }
+
       const availability = await lawyerMarketplaceService.deleteAvailabilitySlot(
-        req.user.uid,
+        userId,
         req.params.id
       );
       res.json({ success: true, availability });
-    } catch (error) {
+    } catch (error: any) {
       res.status(400).json({ success: false, error: error.message });
     }
   }

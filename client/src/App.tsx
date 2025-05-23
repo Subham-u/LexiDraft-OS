@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useParams } from 'react-router-dom';
 import { AuthProvider } from '@/context/AuthContext';
 import { Login } from '@/components/auth/Login';
 import { SignUp } from '@/components/auth/SignUp';
@@ -58,6 +58,12 @@ function LayoutWrapper() {
   );
 }
 
+// Contract Editor wrapper to handle contractId from URL
+function ContractEditorWrapper() {
+  const { id } = useParams();
+  return <ContractEditor contractId={id ? parseInt(id, 10) : 0} />;
+}
+
 function App() {
   return (
     <Router>
@@ -76,8 +82,8 @@ function App() {
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/contracts" element={<Contracts />} />
-                <Route path="/contracts/edit/:id" element={<ContractEditor />} />
-                <Route path="/contracts/:id" element={<ContractEditor />} />
+                <Route path="/contracts/edit/:id" element={<ContractEditorWrapper />} />
+                <Route path="/contracts/:id" element={<ContractEditorWrapper />} />
                 <Route path="/templates" element={<Templates />} />
                 <Route path="/lexi-ai" element={<LexiAssistant />} />
                 <Route path="/clients" element={<ClientPortal />} />
