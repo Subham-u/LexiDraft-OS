@@ -99,7 +99,7 @@ router.get('/contracts/analysis/:id', authenticate, asyncHandler(async (req: Req
     }
     
     return res.status(200).json(analysis);
-  } catch (error) {
+  } catch (error:any) {
     logger.error(`Error fetching analysis: ${error.message}`, error);
     throw error;
   }

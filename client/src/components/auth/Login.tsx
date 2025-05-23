@@ -65,7 +65,14 @@ export function Login() {
     try {
       const success = await login(formData);
       if (success) {
-        navigate('/dashboard');
+        toast({
+          title: "Success",
+          description: "Successfully logged in",
+        });
+        // Force a small delay to ensure the toast is visible
+        setTimeout(() => {
+          navigate('/', { replace: true });
+        }, 100);
       }
     } catch (error: any) {
       toast({
@@ -150,4 +157,4 @@ export function Login() {
       </Card>
     </div>
   );
-}
+} 

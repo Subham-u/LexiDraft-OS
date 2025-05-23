@@ -34,7 +34,7 @@ const addUsersSchema = z.object({
  * Create a new chat room
  * @route POST /api/chat/rooms
  */
-router.post("/rooms", authenticate(), asyncHandler(async (req: Request, res: Response) => {
+router.post("/rooms", authenticate, asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) {
     throw ApiError.unauthorized('Authentication required');
   }
@@ -63,7 +63,7 @@ router.post("/rooms", authenticate(), asyncHandler(async (req: Request, res: Res
  * Create a direct message room between the current user and another user
  * @route POST /api/chat/rooms/direct/:userId
  */
-router.post("/rooms/direct/:userId", authenticate(), asyncHandler(async (req: Request, res: Response) => {
+router.post("/rooms/direct/:userId", authenticate, asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) {
     throw ApiError.unauthorized('Authentication required');
   }
@@ -92,7 +92,7 @@ router.post("/rooms/direct/:userId", authenticate(), asyncHandler(async (req: Re
  * Create a group chat room
  * @route POST /api/chat/rooms/group
  */
-router.post("/rooms/group", authenticate(), asyncHandler(async (req: Request, res: Response) => {
+router.post("/rooms/group", authenticate, asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) {
     throw ApiError.unauthorized('Authentication required');
   }
@@ -126,7 +126,7 @@ router.post("/rooms/group", authenticate(), asyncHandler(async (req: Request, re
  * Get all chat rooms for the authenticated user
  * @route GET /api/chat/rooms
  */
-router.get("/rooms", authenticate(), asyncHandler(async (req: Request, res: Response) => {
+router.get("/rooms", authenticate, asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) {
     throw ApiError.unauthorized('Authentication required');
   }
@@ -145,7 +145,7 @@ router.get("/rooms", authenticate(), asyncHandler(async (req: Request, res: Resp
  * Get a specific chat room by ID
  * @route GET /api/chat/rooms/:id
  */
-router.get("/rooms/:id", authenticate(), asyncHandler(async (req: Request, res: Response) => {
+router.get("/rooms/:id", authenticate, asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) {
     throw ApiError.unauthorized('Authentication required');
   }
@@ -179,7 +179,7 @@ router.get("/rooms/:id", authenticate(), asyncHandler(async (req: Request, res: 
  * Get messages for a chat room
  * @route GET /api/chat/rooms/:id/messages
  */
-router.get("/rooms/:id/messages", authenticate(), asyncHandler(async (req: Request, res: Response) => {
+router.get("/rooms/:id/messages", authenticate, asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) {
     throw ApiError.unauthorized('Authentication required');
   }
@@ -222,7 +222,7 @@ router.get("/rooms/:id/messages", authenticate(), asyncHandler(async (req: Reque
  * Get new messages since a specific date
  * @route GET /api/chat/rooms/:id/messages/new
  */
-router.get("/rooms/:id/messages/new", authenticate(), asyncHandler(async (req: Request, res: Response) => {
+router.get("/rooms/:id/messages/new", authenticate, asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) {
     throw ApiError.unauthorized('Authentication required');
   }
@@ -271,7 +271,7 @@ router.get("/rooms/:id/messages/new", authenticate(), asyncHandler(async (req: R
  * Send a message to a chat room
  * @route POST /api/chat/rooms/:id/messages
  */
-router.post("/rooms/:id/messages", authenticate(), asyncHandler(async (req: Request, res: Response) => {
+router.post("/rooms/:id/messages", authenticate, asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) {
     throw ApiError.unauthorized('Authentication required');
   }
@@ -304,7 +304,7 @@ router.post("/rooms/:id/messages", authenticate(), asyncHandler(async (req: Requ
  * Add users to a chat room
  * @route POST /api/chat/rooms/:id/participants
  */
-router.post("/rooms/:id/participants", authenticate(), asyncHandler(async (req: Request, res: Response) => {
+router.post("/rooms/:id/participants", authenticate, asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) {
     throw ApiError.unauthorized('Authentication required');
   }
@@ -335,7 +335,7 @@ router.post("/rooms/:id/participants", authenticate(), asyncHandler(async (req: 
  * Leave a chat room
  * @route DELETE /api/chat/rooms/:id/participants/me
  */
-router.delete("/rooms/:id/participants/me", authenticate(), asyncHandler(async (req: Request, res: Response) => {
+router.delete("/rooms/:id/participants/me", authenticate, asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) {
     throw ApiError.unauthorized('Authentication required');
   }
@@ -360,7 +360,7 @@ router.delete("/rooms/:id/participants/me", authenticate(), asyncHandler(async (
  * Mark messages as read
  * @route POST /api/chat/rooms/:id/read
  */
-router.post("/rooms/:id/read", authenticate(), asyncHandler(async (req: Request, res: Response) => {
+router.post("/rooms/:id/read", authenticate, asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) {
     throw ApiError.unauthorized('Authentication required');
   }
@@ -385,14 +385,14 @@ router.post("/rooms/:id/read", authenticate(), asyncHandler(async (req: Request,
  * Get unread message count
  * @route GET /api/chat/unread
  */
-router.get("/unread", authenticate(), asyncHandler(async (req: Request, res: Response) => {
+router.get("/unread", authenticate, asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) {
     throw ApiError.unauthorized('Authentication required');
   }
   
-  logger.info(`Getting unread message count for user: ${req.user.id}`);
+  logger.info(`Getting unread message count for user: ${req.user.uid}`);
   
-  const count = await chatService.getUnreadMessageCount(req.user.id);
+  const count = await chatService.getUnreadMessageCount(req.user.uid);
   
   return res.json({
     success: true,

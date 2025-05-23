@@ -8,44 +8,43 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 
-const loginSchema = z.object({
-  username: z.string().min(1, 'Username is required'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+const forgotPasswordSchema = z.object({
+  email: z.string().email('Invalid email address'),
 });
 
-type LoginFormData = z.infer<typeof loginSchema>;
+type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
 
-export function Login() {
+export function ForgotPassword() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { forgotPassword } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState<LoginFormData>({
-    username: '',
-    password: '',
+  const [formData, setFormData] = useState<ForgotPasswordFormData>({
+    email: '',
   });
-  const [errors, setErrors] = useState<Partial<LoginFormData>>({});
+  const [errors, setErrors] = useState<Partial<ForgotPasswordFormData>>({});
+  const [emailSent, setEmailSent] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     // Clear error when user starts typing
-    if (errors[name as keyof LoginFormData]) {
+    if (errors[name as keyof ForgotPasswordFormData]) {
       setErrors(prev => ({ ...prev, [name]: undefined }));
     }
   };
 
   const validateForm = () => {
     try {
-      loginSchema.parse(formData);
+      forgotPasswordSchema.parse(formData);
       setErrors({});
       return true;
     } catch (error) {
       if (error instanceof z.ZodError) {
-        const newErrors: Partial<LoginFormData> = {};
+        const newErrors: Partial<ForgotPasswordFormData> = {};
         error.errors.forEach(err => {
           if (err.path[0]) {
-            newErrors[err.path[0] as keyof LoginFormData] = err.message;
+            newErrors[err.path[0] as keyof ForgotPasswordFormData] = err.message;
           }
         });
         setErrors(newErrors);
@@ -63,14 +62,12 @@ export function Login() {
 
     setLoading(true);
     try {
-      const success = await login(formData);
-      if (success) {
-        navigate('/dashboard');
-      }
+      await forgotPassword(formData.email);
+      setEmailSent(true);
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || "Failed to login",
+        description: error.message || "Failed to send password reset email",
         variant: "destructive",
       });
     } finally {
@@ -78,43 +75,54 @@ export function Login() {
     }
   };
 
+  if (emailSent) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Check Your Email</CardTitle>
+            <CardDescription>
+              We've sent password reset instructions to your email address.
+            </CardDescription>
+          </CardHeader>
+          <CardFooter>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => navigate('/login')}
+            >
+              Return to Login
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Welcome Back</CardTitle>
-          <CardDescription>Sign in to your account to continue</CardDescription>
+          <CardTitle>Forgot Password</CardTitle>
+          <CardDescription>
+            Enter your email address and we'll send you instructions to reset your password.
+          </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
-                id="username"
-                name="username"
-                type="text"
-                placeholder="Enter your username"
-                value={formData.username}
+                id="email"
+                name="email"
+                type="email"
+                placeholder="Enter your email"
+                value={formData.email}
                 onChange={handleChange}
-                className={errors.username ? "border-red-500" : ""}
+                className={errors.email ? "border-red-500" : ""}
               />
-              {errors.username && (
-                <p className="text-sm text-red-500">{errors.username}</p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                placeholder="Enter your password"
-                value={formData.password}
-                onChange={handleChange}
-                className={errors.password ? "border-red-500" : ""}
-              />
-              {errors.password && (
-                <p className="text-sm text-red-500">{errors.password}</p>
+              {errors.email && (
+                <p className="text-sm text-red-500">{errors.email}</p>
               )}
             </div>
           </CardContent>
@@ -124,25 +132,15 @@ export function Login() {
               className="w-full"
               disabled={loading}
             >
-              {loading ? "Signing in..." : "Sign In"}
+              {loading ? "Sending..." : "Send Reset Instructions"}
             </Button>
             <div className="text-center text-sm">
-              <p>
-                Don't have an account?{' '}
-                <Button
-                  variant="link"
-                  className="p-0"
-                  onClick={() => navigate('/signup')}
-                >
-                  Sign up
-                </Button>
-              </p>
               <Button
                 variant="link"
                 className="p-0"
-                onClick={() => navigate('/forgot-password')}
+                onClick={() => navigate('/login')}
               >
-                Forgot password?
+                Back to Login
               </Button>
             </div>
           </CardFooter>
@@ -150,4 +148,4 @@ export function Login() {
       </Card>
     </div>
   );
-}
+} 

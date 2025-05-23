@@ -14,6 +14,9 @@ import adapterRoutes from "./routes/adapter.routes";
 import analysisRoutes from "./routes/analysis.routes";
 import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
+import documentSharingRoutes from './routes/document-sharing.routes';
+import documentActivityRoutes from './routes/document-activity.routes';
+import lawyerMarketplaceRoutes from './routes/lawyer-marketplace.routes';
 
 // Initialize logger
 const logger = createLogger('server');
@@ -108,6 +111,9 @@ app.get('/api/ws/status', (req: Request, res: Response) => {
 // Mount API routes
 // app.use(directApiRoutes);
 app.use('/api', apiRoutes);
+app.use('/api/share', documentSharingRoutes);
+app.use('/api/document-activities', documentActivityRoutes);
+app.use('/api/lawyer', lawyerMarketplaceRoutes);
 
 // Development middleware
 if (process.env.NODE_ENV === 'development') {

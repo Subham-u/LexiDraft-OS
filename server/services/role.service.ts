@@ -7,9 +7,7 @@ import { createLogger } from '../utils/logger';
 import { ApiError } from '../middleware/error';
 import { eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
-
 const logger = createLogger('role-service');
-
 // Default permissions for each role
 const DEFAULT_PERMISSIONS = {
   user: [
@@ -37,7 +35,7 @@ const DEFAULT_PERMISSIONS = {
     { controller: 'consultations', action: 'delete', enabled: true }
   ],
   admin: [
-    { controller: '*', action: '*', enabled: true }
+    {controller: '*', action: '*', enabled: true }
   ]
 };
 
@@ -215,4 +213,4 @@ export async function hasPermission(roleName: string, controller: string, action
     logger.error(`Error checking permission: ${roleName} ${controller} ${action}`, error);
     return false;
   }
-} 
+}

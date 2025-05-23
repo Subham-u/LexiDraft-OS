@@ -1,19 +1,3 @@
-DO $$ 
-BEGIN
-    -- Drop existing enums if they exist
-    DROP TYPE IF EXISTS "public"."consultation_mode" CASCADE;
-    DROP TYPE IF EXISTS "public"."consultation_status" CASCADE;
-    DROP TYPE IF EXISTS "public"."contract_status" CASCADE;
-    DROP TYPE IF EXISTS "public"."contract_type" CASCADE;
-    DROP TYPE IF EXISTS "public"."practice_area" CASCADE;
-    DROP TYPE IF EXISTS "public"."party_role" CASCADE;
-    DROP TYPE IF EXISTS "public"."payment_status" CASCADE;
-    DROP TYPE IF EXISTS "public"."payment_type" CASCADE;
-    DROP TYPE IF EXISTS "public"."subscription_plan" CASCADE;
-    DROP TYPE IF EXISTS "public"."subscription_status" CASCADE;
-    DROP TYPE IF EXISTS "public"."verification_status" CASCADE;
-END $$;
-
 CREATE TYPE "public"."consultation_mode" AS ENUM('video', 'call', 'chat');--> statement-breakpoint
 CREATE TYPE "public"."consultation_status" AS ENUM('scheduled', 'ongoing', 'completed', 'cancelled', 'no_show');--> statement-breakpoint
 CREATE TYPE "public"."contract_status" AS ENUM('draft', 'pending', 'signed', 'expired', 'cancelled');--> statement-breakpoint
@@ -136,6 +120,15 @@ CREATE TABLE "contracts" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE "document_activities" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"document_id" integer NOT NULL,
+	"user_id" text NOT NULL,
+	"activity_type" text NOT NULL,
+	"metadata" json,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "document_versions" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"document_id" integer NOT NULL,
@@ -214,6 +207,25 @@ CREATE TABLE "payments" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE "permissions" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"controller" text NOT NULL,
+	"action" text NOT NULL,
+	"enabled" boolean DEFAULT true NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "roles" (
+	"id" text PRIMARY KEY NOT NULL,
+	"name" text NOT NULL,
+	"description" text,
+	"permissions" json NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "roles_name_unique" UNIQUE("name")
+);
+--> statement-breakpoint
 CREATE TABLE "shared_documents" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"consultation_id" integer NOT NULL,
@@ -285,6 +297,7 @@ ALTER TABLE "consultations" ADD CONSTRAINT "consultations_user_id_users_uid_fk" 
 ALTER TABLE "contract_analyses" ADD CONSTRAINT "contract_analyses_contract_id_contracts_id_fk" FOREIGN KEY ("contract_id") REFERENCES "public"."contracts"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "contract_analyses" ADD CONSTRAINT "contract_analyses_user_id_users_uid_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("uid") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "contracts" ADD CONSTRAINT "contracts_user_id_users_uid_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("uid") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "document_activities" ADD CONSTRAINT "document_activities_user_id_users_uid_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("uid") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "document_versions" ADD CONSTRAINT "document_versions_created_by_users_uid_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("uid") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "lawyer_reviews" ADD CONSTRAINT "lawyer_reviews_lawyer_id_lawyers_id_fk" FOREIGN KEY ("lawyer_id") REFERENCES "public"."lawyers"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "lawyer_reviews" ADD CONSTRAINT "lawyer_reviews_user_id_users_uid_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("uid") ON DELETE no action ON UPDATE no action;--> statement-breakpoint

@@ -28,6 +28,7 @@ try {
   const contractRoutes = require('./contract.routes').default;
   const templateRoutes = require('./template.routes').default;
   const adminRoutes = require('./admin.routes').default;
+  const authRoutes = require('./auth.routes').default;
   
   router.use('/auth', authRoutes);
   router.use('/contracts', contractRoutes);

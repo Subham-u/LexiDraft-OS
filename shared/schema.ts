@@ -371,6 +371,16 @@ export const chatMessages = pgTable('chat_messages', {
   createdAt: timestamp('created_at').defaultNow().notNull()
 });
 
+// Document Activities table
+export const documentActivities = pgTable('document_activities', {
+  id: serial('id').primaryKey(),
+  documentId: integer('document_id').notNull(),
+  userId: text('user_id').notNull().references(() => users.uid),
+  activityType: text('activity_type').notNull(),
+  metadata: json('metadata'),
+  createdAt: timestamp('created_at').defaultNow().notNull()
+});
+
 // Custom types
 export type Party = {
   name: string;
@@ -418,6 +428,7 @@ export const insertDocumentVersionSchema = createInsertSchema(documentVersions).
 export const insertNotificationSchema = createInsertSchema(notifications).omit({ id: true, createdAt: true });
 export const insertChatRoomSchema = createInsertSchema(chatRooms).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({ id: true, createdAt: true });
+export const insertDocumentActivitySchema = createInsertSchema(documentActivities).omit({ id: true, createdAt: true });
 
 // Types
 export type User = typeof users.$inferSelect;
@@ -472,6 +483,9 @@ export type InsertChatRoom = z.infer<typeof insertChatRoomSchema>;
 
 export type ChatMessage = typeof chatMessages.$inferSelect;
 export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
+
+export type DocumentActivity = typeof documentActivities.$inferSelect;
+export type InsertDocumentActivity = z.infer<typeof insertDocumentActivitySchema>;
 
 // Permissions table
 export const permissions = pgTable('permissions', {

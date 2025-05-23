@@ -104,7 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, password: string) => {
     try {
       // Call login API
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch('/api/signin', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -136,7 +136,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     try {
       // Call logout API if needed
-      await fetch('/api/auth/logout', {
+      await fetch('/api/logout', {
         method: 'POST',
       });
     } catch (error) {
@@ -150,18 +150,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
   
   // Sign up method
-  const signUp = async (email: string, password: string, name: string) => {
+  const signUp = async (email: string, password: string, fullname: string,username:string) => {
     try {
       // Call signup API
-      const response = await fetch('/api/auth/signup', {
+      const response = await fetch('/api/signup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password, name }),
+        body: JSON.stringify({ email, password, fullname,username }),
       });
       
       const data = await response.json();
+      console.log(data);
       
       if (!response.ok) {
         throw new Error(data.message || 'Signup failed');
